@@ -1,0 +1,83 @@
+# ============================================================
+# NetShield AI -- Stop All Servers (Windows PowerShell)
+# ============================================================
+# Kills all processes related to NetShield AI:
+#   - Python uvicorn (port 8000)
+#   - Node.js backend (port 3001)
+#   - Vite dev server (port 5173)
+#
+# Usage:
+#   .\scripts\stop_all.ps1
+# ============================================================
+
+Write-Host ""
+Write-Host "================================================" -ForegroundColor Cyan
+Write-Host "  NetShield AI -- Stopping All Servers" -ForegroundColor Cyan
+Write-Host "================================================" -ForegroundColor Cyan
+Write-Host ""
+
+# -- Kill processes by port ----------------------------------
+$Ports = @(8000, 3001, 5173)
+$Killed = 0
+
+foreach ($port in $Ports) {
+    $procIds = @()
+    try {
+        $connections = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue
+        if ($connections) {
+            $procIds = $connections.OwningProcess
+        }
+    } catch {}
+
+    if (-not $procIds -or $procIds.Count -eq 0) {
+        $lines = netstat -ano | Select-String ":$port\s"
+        foreach ($line in $lines) {
+            $parts = ($line.ToString().Trim() -split '\s+')
+            if ($parts.Count -ge 5 -and $parts[1] -match ":$port$") {
+                $pidVal = [int]$parts[-1]
+                if ($pidVal -gt 0) { $procIds += $pidVal }
+            }
+        }
+    }
+
+    if ($procIds) {
+        foreach ($procId in ($procIds | Select-Object -Unique)) {
+            if ($procId -and $procId -ne 0) {
+                $proc = Get-Process -Id $procId -ErrorAction SilentlyContinue
+                $procName = if ($proc) { $proc.ProcessName } else { "unknown" }
+                Write-Host "  Killing PID $procId ($procName) on port $port..." -ForegroundColor Yellow
+                Stop-Process -Id $procId -Force -ErrorAction SilentlyContinue
+                $Killed++
+            }
+        }
+    } else {
+        Write-Host "  Port $port -- nothing running" -ForegroundColor DarkGray
+    }
+}
+
+# -- Also kill any stray uvicorn processes --------------------
+$uvicorn = Get-Process -Name python -ErrorAction SilentlyContinue | Where-Object {
+    $_.CommandLine -like "*uvicorn*" -or $_.MainWindowTitle -like "*NetShield*"
+}
+foreach ($proc in $uvicorn) {
+    Write-Host "  Killing stray Python process PID $($proc.Id)..." -ForegroundColor Yellow
+    Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
+    $Killed++
+}
+
+# -- Also kill windows titled "NetShield" -------------------
+$netshieldWindows = Get-Process | Where-Object { $_.MainWindowTitle -like "*NetShield*" }
+foreach ($proc in $netshieldWindows) {
+    Write-Host "  Killing $($proc.ProcessName) PID $($proc.Id) ($($proc.MainWindowTitle))..." -ForegroundColor Yellow
+    Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
+    $Killed++
+}
+
+# -- Summary -------------------------------------------------
+Write-Host ""
+if ($Killed -gt 0) {
+    Write-Host "  Stopped $Killed process(es)." -ForegroundColor Green
+} else {
+    Write-Host "  No NetShield processes found." -ForegroundColor DarkGray
+}
+Write-Host ""
