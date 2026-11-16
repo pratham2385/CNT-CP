@@ -42,10 +42,10 @@ export default function PacketFeed() {
   }
 
   return (
-    <div className="glass-card feed-card">
+    <div className="card feed-card">
       <div className="feed-header">
         <div className="feed-title-wrap">
-          <Radio size={16} className="text-cyan pulse-icon" />
+          <Radio size={15} className="text-muted" />
           <span className="chart-title">Live Packet Feed</span>
         </div>
         <span className="feed-count text-muted mono">{packets.length}</span>
@@ -58,16 +58,16 @@ export default function PacketFeed() {
           packets.map((pkt, i) => {
             const isAttack = pkt.is_attack
             const color = isAttack
-              ? (ATTACK_COLORS[pkt.label] || '#ff2a5f')
-              : 'var(--accent-cyan)'
+              ? (ATTACK_COLORS[pkt.label] || 'var(--status-critical)')
+              : 'var(--status-safe)'
             const ctx = pkt.context || {}
             return (
               <div
                 key={`${pkt.timestamp_utc}-${i}`}
                 className={`feed-item ${isAttack ? 'feed-item-attack' : ''}`}
               >
-                <span className="feed-dot" style={{ background: color, boxShadow: `0 0 8px ${color}` }} />
-                <span className="feed-label" style={{ color, borderColor: `${color}40`, background: `${color}12` }}>
+                <span className="feed-dot" style={{ background: color }} />
+                <span className="feed-label mono" style={{ color, borderColor: `${color}35`, background: `${color}10` }}>
                   {pkt.label}
                 </span>
                 <span className="feed-ip mono">
@@ -75,7 +75,7 @@ export default function PacketFeed() {
                   <span className="arrow"> → </span>
                   {formatEndpoint(ctx.dst_ip, ctx.dst_port)}
                 </span>
-                <span className="feed-proto text-muted">{protocolName(ctx.protocol)}</span>
+                <span className="feed-proto text-muted mono">{protocolName(ctx.protocol)}</span>
                 <span className="feed-conf mono text-muted">
                   {formatConfidence(pkt.confidence)}
                 </span>
@@ -96,7 +96,7 @@ export default function PacketFeed() {
 
       <style>{`
         .feed-card {
-          padding: 20px;
+          padding: 16px 20px;
           display: flex;
           flex-direction: column;
           height: 425px;
@@ -105,7 +105,7 @@ export default function PacketFeed() {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-bottom: 12px;
+          margin-bottom: 10px;
         }
         .feed-title-wrap {
           display: flex;
@@ -113,86 +113,82 @@ export default function PacketFeed() {
           gap: 8px;
         }
         .chart-title {
-          font-family: var(--font-heading);
-          font-size: 0.95rem;
-          font-weight: 700;
+          font-family: var(--font-body);
+          font-size: 0.88rem;
+          font-weight: 600;
           color: var(--text-primary);
         }
-        .pulse-icon {
-          animation: pulse-ring 2s infinite;
-        }
         .feed-count {
-          font-size: 0.75rem;
-          background: rgba(30, 41, 59, 0.6);
-          border: 1px solid rgba(255, 255, 255, 0.08);
-          padding: 2px 8px;
-          border-radius: 12px;
+          font-size: 0.7rem;
+          background: var(--bg-raised);
+          border: 1px solid var(--border-subtle);
+          padding: 1px 7px;
+          border-radius: var(--radius-sm);
         }
         .feed-list {
           flex: 1;
           overflow-y: auto;
           display: flex;
           flex-direction: column;
-          gap: 3px;
+          gap: 2px;
         }
         .feed-empty {
           text-align: center;
           padding: 60px 0;
-          font-size: 0.85rem;
+          font-size: 0.82rem;
         }
         .feed-item {
           display: grid;
-          grid-template-columns: 8px 80px 1fr 40px 60px 70px;
+          grid-template-columns: 6px 82px 1fr 40px 55px 65px;
           align-items: center;
           gap: 8px;
-          padding: 7px 10px;
-          border-radius: 8px;
-          font-size: 0.75rem;
-          background: rgba(15, 23, 42, 0.3);
-          border: 1px solid transparent;
-          animation: fade-in 0.25s ease;
-          transition: all 0.2s;
+          padding: 5px 8px;
+          border-radius: var(--radius-sm);
+          font-size: 0.73rem;
+          background: transparent;
+          border-left: 2px solid transparent;
+          transition: background-color var(--transition-fast);
         }
         .feed-item:hover {
-          background: rgba(30, 41, 59, 0.5);
-          border-color: rgba(56, 189, 248, 0.2);
+          background: var(--bg-raised);
         }
         .feed-item-attack {
-          background: rgba(255, 42, 95, 0.08);
-          border: 1px solid rgba(255, 42, 95, 0.25);
-          box-shadow: inset 3px 0 0 var(--accent-crimson);
+          background: rgba(248, 113, 113, 0.05);
+          border-left: 2px solid var(--status-critical);
         }
         .feed-dot {
-          width: 7px;
-          height: 7px;
+          width: 5px;
+          height: 5px;
           border-radius: 50%;
           flex-shrink: 0;
         }
         .feed-label {
-          font-weight: 700;
-          font-size: 0.68rem;
+          font-weight: 600;
+          font-size: 0.65rem;
           text-align: center;
-          padding: 1px 6px;
-          border-radius: 6px;
+          padding: 1px 5px;
+          border-radius: var(--radius-sm);
           border: 1px solid;
           white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
         .feed-ip {
           font-size: 0.72rem;
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
+          color: var(--text-primary);
         }
         .arrow {
-          color: var(--accent-cyan);
-          opacity: 0.7;
+          color: var(--text-muted);
         }
         .feed-proto {
-          font-size: 0.7rem;
+          font-size: 0.68rem;
           text-align: center;
         }
         .feed-conf {
-          font-size: 0.7rem;
+          font-size: 0.68rem;
           text-align: right;
         }
         .feed-time {
@@ -202,23 +198,24 @@ export default function PacketFeed() {
         }
         .feed-new-packets {
           text-align: center;
-          padding: 6px;
-          background: rgba(0, 240, 255, 0.1);
-          border: 1px solid rgba(0, 240, 255, 0.3);
-          border-radius: 8px;
-          color: var(--accent-cyan);
-          font-size: 0.78rem;
-          font-weight: 600;
+          padding: 5px;
+          background: var(--bg-raised);
+          border: 1px solid var(--border-default);
+          border-radius: var(--radius-sm);
+          color: var(--text-primary);
+          font-size: 0.72rem;
+          font-family: var(--font-mono);
+          font-weight: 500;
           cursor: pointer;
           margin-top: 6px;
-          transition: all 0.2s;
+          transition: background-color var(--transition-fast);
         }
         .feed-new-packets:hover {
-          background: rgba(0, 240, 255, 0.2);
+          background: var(--bg-card);
         }
         @media (max-width: 768px) {
           .feed-item {
-            grid-template-columns: 8px 70px 1fr 50px;
+            grid-template-columns: 6px 70px 1fr 50px;
           }
           .feed-proto, .feed-conf { display: none; }
         }

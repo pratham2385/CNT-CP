@@ -23,7 +23,7 @@ export default function Dashboard() {
 
       <StatsCards />
 
-      <div className="dashboard-grid">
+      <div className="dashboard-grid" style={{ marginTop: '16px' }}>
         <div className="grid-col-span-2">
           <LiveTrafficChart />
         </div>
@@ -32,7 +32,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="dashboard-grid" style={{ marginTop: '20px' }}>
+      <div className="dashboard-grid" style={{ marginTop: '16px' }}>
         <div className="grid-col-1">
           <AttackPieChart />
         </div>
@@ -44,11 +44,8 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="dashboard-grid" style={{ marginTop: '20px' }}>
-        <div className="grid-col-span-2">
-          <SystemInfo />
-        </div>
-        <div className="grid-col-1" />
+      <div style={{ marginTop: '16px' }}>
+        <SystemInfo />
       </div>
 
       <Chatbot />
@@ -57,7 +54,7 @@ export default function Dashboard() {
         .dashboard-grid {
           display: grid;
           grid-template-columns: 1fr 1fr 1fr;
-          gap: 20px;
+          gap: 16px;
         }
         .grid-col-span-2 {
           grid-column: span 2;

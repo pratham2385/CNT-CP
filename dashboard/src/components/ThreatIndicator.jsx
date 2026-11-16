@@ -1,19 +1,20 @@
 /**
- * NetShield AI — Cyber Threat Radar component.
+ * NetShield AI — Precision Threat Level Instrument Gauge.
  *
- * Futuristic circular radar gauge displaying live system threat level,
- * status description, and real-time pulse glow.
+ * Calibrated system threat indicator displaying current status tier,
+ * incident frequency, and inspection diagnostics.
  *
  * @module components/ThreatIndicator
  */
 
 import { Shield, ShieldAlert, ShieldX } from 'lucide-react'
 import { useDashboard } from '../context/DashboardContext.jsx'
-import { THREAT_COLORS } from '../utils/constants.js'
+import { THREAT_COLORS, THREAT_BG_COLORS } from '../utils/constants.js'
 
 export default function ThreatIndicator() {
   const { threatLevel, attackCount } = useDashboard()
   const color = THREAT_COLORS[threatLevel] || THREAT_COLORS.SAFE
+  const bg = THREAT_BG_COLORS[threatLevel] || THREAT_BG_COLORS.SAFE
 
   const Icon =
     threatLevel === 'SAFE' ? Shield :
@@ -23,118 +24,147 @@ export default function ThreatIndicator() {
   const description =
     threatLevel === 'SAFE' ? 'Zero malicious flows detected in last 60s' :
     threatLevel === 'ELEVATED' ? `${attackCount} attack flow(s) flagged in last 60s` :
-    `HIGH ALERT: ${attackCount}+ attacks in last 60s`
+    `High alert: ${attackCount}+ attack events detected`
 
-  const pulseClass =
-    threatLevel === 'CRITICAL' ? 'pulse-critical-radar' :
-    threatLevel === 'ELEVATED' ? 'pulse-amber-radar' :
-    'pulse-safe-radar'
+  // Status meter segments: Safe (0), Elevated (1), Critical (2)
+  const tierIndex = threatLevel === 'CRITICAL' ? 2 : threatLevel === 'ELEVATED' ? 1 : 0
 
   return (
     <div className="glass-card threat-card">
       <div className="threat-header">
-        <span className="threat-title">System Threat Status</span>
+        <div className="threat-title-wrap">
+          <Shield size={15} className="text-muted" />
+          <span className="threat-title">Threat Status</span>
+        </div>
+        <span className="threat-window mono text-faint">60s Window</span>
       </div>
 
-      <div className={`threat-circle-wrap ${pulseClass}`}>
-        <div className="radar-outer-ring" style={{ borderColor: `${color}30` }}>
-          <div className="radar-inner-ring" style={{ borderColor: `${color}60` }} />
-          <div
-            className="threat-circle"
-            style={{
-              borderColor: color,
-              background: `radial-gradient(circle, ${color}20 0%, transparent 75%)`,
-              boxShadow: `0 0 35px ${color}50`,
-            }}
-          >
-            <Icon size={46} style={{ color, filter: `drop-shadow(0 0 10px ${color})` }} />
+      <div className="threat-body">
+        {/* Calibrated Gauge Dial */}
+        <div className="threat-dial" style={{ borderColor: `${color}44`, background: bg }}>
+          <div className="threat-dial-inner">
+            <Icon size={32} style={{ color }} />
+            <span className="threat-dial-text mono" style={{ color }}>{threatLevel}</span>
           </div>
         </div>
 
-        <span className="threat-label" style={{ color }}>{threatLevel}</span>
-        <span className="threat-desc text-muted">{description}</span>
+        {/* Segmented Status Bar */}
+        <div className="threat-segments">
+          <div className={`segment ${tierIndex >= 0 ? 'seg-active' : ''}`} style={{ '--seg-color': 'var(--accent-green)' }}>
+            <span>NORMAL</span>
+          </div>
+          <div className={`segment ${tierIndex >= 1 ? 'seg-active' : ''}`} style={{ '--seg-color': 'var(--accent-amber)' }}>
+            <span>ELEVATED</span>
+          </div>
+          <div className={`segment ${tierIndex >= 2 ? 'seg-active' : ''}`} style={{ '--seg-color': 'var(--accent-crimson)' }}>
+            <span>CRITICAL</span>
+          </div>
+        </div>
+
+        <p className="threat-desc text-muted">{description}</p>
       </div>
 
       <style>{`
         .threat-card {
-          padding: 22px;
+          padding: 18px 20px;
           display: flex;
           flex-direction: column;
-          align-items: center;
-          gap: 12px;
+          justify-content: space-between;
           height: 100%;
-          min-height: 310px;
-          justify-content: center;
+          min-height: 290px;
         }
+
         .threat-header {
-          width: 100%;
-          text-align: center;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          border-bottom: 1px solid var(--border-default);
+          padding-bottom: 12px;
         }
+
+        .threat-title-wrap {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+
         .threat-title {
-          font-family: var(--font-heading);
-          font-size: 0.82rem;
-          font-weight: 700;
-          color: var(--text-secondary);
-          text-transform: uppercase;
-          letter-spacing: 1px;
+          font-size: 0.85rem;
+          font-weight: 600;
+          color: var(--text-primary);
         }
-        .threat-circle-wrap {
+
+        .threat-window {
+          font-size: 0.7rem;
+        }
+
+        .threat-body {
           display: flex;
           flex-direction: column;
           align-items: center;
           gap: 14px;
-          padding: 10px 0;
+          padding: 10px 0 4px 0;
         }
-        .radar-outer-ring {
-          position: relative;
-          width: 135px;
-          height: 135px;
-          border-radius: 50%;
-          border: 1px dashed;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-        .radar-inner-ring {
-          position: absolute;
-          width: 115px;
-          height: 115px;
+
+        .threat-dial {
+          width: 110px;
+          height: 110px;
           border-radius: 50%;
           border: 1px solid;
-          opacity: 0.5;
-        }
-        .threat-circle {
-          width: 95px;
-          height: 95px;
-          border-radius: 50%;
-          border: 3px solid;
           display: flex;
           align-items: center;
           justify-content: center;
-          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-          z-index: 2;
+          transition: border-color var(--transition-fast), background var(--transition-fast);
         }
-        .threat-label {
-          font-family: var(--font-heading);
-          font-size: 1.6rem;
-          font-weight: 800;
-          letter-spacing: 1.5px;
-          text-transform: uppercase;
+
+        .threat-dial-inner {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 4px;
         }
+
+        .threat-dial-text {
+          font-size: 0.85rem;
+          font-weight: 700;
+          letter-spacing: 0.5px;
+        }
+
+        .threat-segments {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 6px;
+          width: 100%;
+          max-width: 260px;
+        }
+
+        .segment {
+          height: 22px;
+          background: var(--bg-raised);
+          border: 1px solid var(--border-default);
+          border-radius: var(--radius-xs);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-family: var(--font-mono);
+          font-size: 0.65rem;
+          font-weight: 500;
+          color: var(--text-tertiary);
+          transition: all var(--transition-fast);
+        }
+
+        .segment.seg-active {
+          background: var(--seg-color);
+          color: #0b0d14;
+          border-color: var(--seg-color);
+          font-weight: 700;
+        }
+
         .threat-desc {
-          font-size: 0.8rem;
+          font-size: 0.76rem;
           text-align: center;
-          max-width: 220px;
           line-height: 1.4;
-        }
-        .pulse-critical-radar .threat-circle {
-          animation: pulse-glow 1.5s infinite;
-        }
-        .pulse-amber-radar .threat-circle {
-          animation: pulse-amber 2s infinite;
-        }
-        .pulse-safe-radar .threat-circle {
-          animation: pulse-safe 3s infinite;
+          max-width: 240px;
         }
       `}</style>
     </div>

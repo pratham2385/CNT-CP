@@ -23,16 +23,16 @@ export default function History() {
           max-width: 1400px;
         }
         .page-header {
-          margin-bottom: 20px;
+          margin-bottom: 16px;
         }
         .page-title {
-          font-size: 1.5rem;
-          font-weight: 700;
+          font-size: 1.15rem;
+          font-weight: 600;
           color: var(--text-primary);
         }
         .page-subtitle {
-          font-size: 0.85rem;
-          margin-top: 4px;
+          font-size: 0.78rem;
+          margin-top: 3px;
         }
       `}</style>
     </div>

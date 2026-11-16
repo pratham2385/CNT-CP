@@ -32,8 +32,8 @@ import authRouter from './routes/auth.js';
 dotenv.config();
 
 const PORT = parseInt(process.env.NODE_PORT || '3001', 10);
-const PYTHON_API_URL = process.env.PYTHON_API_URL || 'http://localhost:8000';
-const PYTHON_WS_URL = process.env.PYTHON_WS_URL || 'ws://localhost:8000/ws/packets';
+const PYTHON_API_URL = process.env.PYTHON_API_URL || 'http://127.0.0.1:8000';
+const PYTHON_WS_URL = process.env.PYTHON_WS_URL || 'ws://127.0.0.1:8000/ws/packets';
 const DB_PATH = process.env.DB_PATH || 'netshield.db';
 
 // ── Create Express app & DB ─────────────────────────────────────
@@ -44,7 +44,10 @@ const db = new DB(DB_PATH);
 app.set('db', db);
 
 // ── Middleware ──────────────────────────────────────────────────
-app.use(cors({ origin: '*' }));
+app.use(cors({
+  origin: true,
+  credentials: true,
+}));
 app.use(express.json());
 
 // Inject Python API URL into every request for route handlers
@@ -65,6 +68,21 @@ app.use('/api/alerts', alertsRouter);
 app.get('/api/status', async (_req, res) => {
   try {
     const resp = await axios.get(`${PYTHON_API_URL}/api/status`, { timeout: 10000 });
+    res.json(resp.data);
+  } catch (err) {
+    if (err.code === 'ECONNREFUSED' || err.code === 'ECONNRESET') {
+      return res.status(503).json({ error: 'Python backend unavailable' });
+    }
+    const status = err.response?.status || 500;
+    const message = err.response?.data?.detail || err.message;
+    res.status(status).json({ error: message });
+  }
+});
+
+// Database diagnostics and storage metrics route
+app.get('/api/db/status', async (_req, res) => {
+  try {
+    const resp = await axios.get(`${PYTHON_API_URL}/api/db/status`, { timeout: 10000 });
     res.json(resp.data);
   } catch (err) {
     if (err.code === 'ECONNREFUSED' || err.code === 'ECONNRESET') {

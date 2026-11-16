@@ -1,62 +1,103 @@
 /**
  * NetShield AI — AI Chatbot panel component.
  *
- * Slide-out panel with chat bubbles for the Gemini-powered security
- * assistant. Bot messages are rendered as Markdown with proper
- * formatting (bold, lists, headers, spacing). Includes quick-action
- * buttons and a typing indicator.
+ * Instrument-Grade SOC Security Assistant featuring:
+ * - Frosted Glassmorphism with backdrop-blur and soft specular lighting
+ * - Floating Command FAB with live pulse badge & keyboard shortcut hint (Ctrl+K)
+ * - Systematic chat bubbles with role-differentiated styling & avatar halos
+ * - Markdown rendering for code snippets, lists, and threat intelligence
+ * - Security Quick-Prompt chips with hover elevation
+ * - Real-time thinking animation with glowing cyan pulse wave
+ * - Clean header with AI Model badge and one-click clear session
  *
  * @module components/Chatbot
  */
 
-import { useState, useRef, useEffect, useMemo } from 'react'
-import { MessageSquare, X, Send, Bot, User, AlertTriangle, Shield, Activity, Search } from 'lucide-react'
+import { useState, useRef, useEffect } from 'react'
+import {
+  MessageSquare,
+  X,
+  Send,
+  Bot,
+  User,
+  Shield,
+  Sparkles,
+  RotateCcw,
+  Terminal,
+  Activity,
+  Zap,
+  Check,
+  Copy,
+  ChevronRight,
+} from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import { sendChatbotQuery, getChatbotStatus } from '../api/client.js'
 
 const QUICK_ACTIONS = [
-  'What attacks happened today?',
-  'Is my network safe right now?',
-  'What is a DDoS attack?',
-  'Show top attacker IPs',
+  { label: 'Today\'s Attack Summary', query: 'What attacks happened today?' },
+  { label: 'Real-Time Posture', query: 'Is my network safe right now?' },
+  { label: 'Explain DDoS Vector', query: 'What is a DDoS attack and how does NetShield AI detect it?' },
+  { label: 'Hostile Adversary IPs', query: 'Show top attacker IPs and their impact' },
 ]
 
 /**
+ * Enhanced Markdown code block with one-click copy button
+ */
+function CodeBlock({ children, inline, className }) {
+  const [copied, setCopied] = useState(false)
+  const text = String(children).replace(/\n$/, '')
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(text)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  if (inline) {
+    return <code className="md-code-inline mono">{children}</code>
+  }
+
+  return (
+    <div className="md-code-block-wrap">
+      <div className="md-code-header">
+        <span className="mono text-xs text-muted">
+          <Terminal size={11} style={{ marginRight: 5, verticalAlign: 'middle' }} />
+          console
+        </span>
+        <button className="code-copy-btn mono" onClick={handleCopy} title="Copy code">
+          {copied ? <Check size={11} className="text-safe" /> : <Copy size={11} />}
+          <span>{copied ? 'Copied' : 'Copy'}</span>
+        </button>
+      </div>
+      <pre className="md-pre-custom mono">
+        <code>{text}</code>
+      </pre>
+    </div>
+  )
+}
+
+/**
  * Lightweight Markdown renderer for bot messages.
- * Applies proper formatting: bold for key info, styled lists,
- * proper spacing, and code formatting.
  */
 function BotMessage({ content }) {
   return (
     <div className="bot-md">
       <ReactMarkdown
         components={{
-          // Bold text → cyan accent color + bold weight
-          strong: ({ children }) => (
-            <strong className="md-bold">{children}</strong>
-          ),
-          // Headers → smaller, accent-colored
-          h1: ({ children }) => <h1 className="md-h">{children}</h1>,
-          h2: ({ children }) => <h2 className="md-h">{children}</h2>,
-          h3: ({ children }) => <h3 className="md-h">{children}</h3>,
-          // Unordered lists → styled with custom bullets
+          strong: ({ children }) => <strong className="md-bold">{children}</strong>,
+          h1: ({ children }) => <h1 className="md-h md-h1">{children}</h1>,
+          h2: ({ children }) => <h2 className="md-h md-h2">{children}</h2>,
+          h3: ({ children }) => <h3 className="md-h md-h3">{children}</h3>,
           ul: ({ children }) => <ul className="md-ul">{children}</ul>,
           li: ({ children }) => <li className="md-li">{children}</li>,
-          // Ordered lists
           ol: ({ children }) => <ol className="md-ol">{children}</ol>,
-          // Paragraphs → proper spacing
           p: ({ children }) => <p className="md-p">{children}</p>,
-          // Inline code
-          code: ({ children }) => <code className="md-code">{children}</code>,
-          // Block code
-          pre: ({ children }) => <pre className="md-pre">{children}</pre>,
-          // Links
+          code: CodeBlock,
           a: ({ href, children }) => (
             <a className="md-link" href={href} target="_blank" rel="noopener noreferrer">
               {children}
             </a>
           ),
-          // Horizontal rules
           hr: () => <hr className="md-hr" />,
         }}
       >
@@ -79,10 +120,11 @@ export default function Chatbot({ externalOpen = false, onExternalClose }) {
     setOpen(false)
     if (onExternalClose) onExternalClose()
   }
+
   const [messages, setMessages] = useState([
     {
       role: 'bot',
-      text: 'Hello! I am the **NetShield AI** assistant. Ask me about current threats, attack types, or network security.',
+      text: 'Hello, Operator. I am the **NetShield AI** security copilot.\n\nI can analyze real-time packet telemetry, provide MITRE ATT&CK mitigation playbooks, or summarize hostile adversary patterns.',
       time: new Date(),
     },
   ])
@@ -114,14 +156,13 @@ export default function Chatbot({ externalOpen = false, onExternalClose }) {
       .catch(() => setBotStatus({ available: false, model: '' }))
   }, [open])
 
-  // Keyboard shortcut: Ctrl+K (or Cmd+K on Mac) toggles the chat panel
+  // Keyboard shortcut: Ctrl+K toggles the chat panel
   useEffect(() => {
     const handler = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
         e.preventDefault()
-        setOpen(prev => !prev)
+        setOpen((prev) => !prev)
       }
-      // Escape closes the panel
       if (e.key === 'Escape' && open) {
         handleClose()
       }
@@ -135,21 +176,34 @@ export default function Chatbot({ externalOpen = false, onExternalClose }) {
     if (!query) return
 
     setInput('')
-    setMessages(prev => [...prev, { role: 'user', text: query, time: new Date() }])
+    setMessages((prev) => [...prev, { role: 'user', text: query, time: new Date() }])
     setTyping(true)
 
     try {
       const response = await sendChatbotQuery(query)
-      setMessages(prev => [...prev, { role: 'bot', text: response, time: new Date() }])
+      setMessages((prev) => [...prev, { role: 'bot', text: response, time: new Date() }])
     } catch {
-      setMessages(prev => [...prev, {
-        role: 'bot',
-        text: 'Sorry, I could not connect to the server. Please ensure the backend is running.',
-        time: new Date(),
-      }])
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: 'bot',
+          text: 'Unable to reach the NetShield inference gateway. Verify that the Python engine on port 8000 is active.',
+          time: new Date(),
+        },
+      ])
     } finally {
       setTyping(false)
     }
+  }
+
+  const handleClearSession = () => {
+    setMessages([
+      {
+        role: 'bot',
+        text: 'Session history refreshed. What would you like to investigate next?',
+        time: new Date(),
+      },
+    ])
   }
 
   const handleKeyDown = (e) => {
@@ -164,487 +218,737 @@ export default function Chatbot({ externalOpen = false, onExternalClose }) {
 
   return (
     <>
-      {/* Floating button */}
+      {/* 1. Floating Glassmorphic FAB with Glow Badge */}
       <button
-        className={`chat-fab ${open ? 'chat-fab-hidden' : ''}`}
+        className={`chat-glass-fab ${open ? 'chat-glass-fab-hidden' : ''}`}
         onClick={() => setOpen(true)}
-        aria-label="Open chatbot (Ctrl+K)"
-        title="Open chatbot (Ctrl+K)"
+        aria-label="Open NetShield Assistant (Ctrl+K)"
+        title="Open NetShield Assistant (Ctrl+K)"
       >
-        <MessageSquare size={24} />
-        <span className="chat-fab-pulse" />
-        <span className="chat-fab-hint">⌘K</span>
+        <div className="fab-icon-box">
+          <Sparkles size={16} className="text-cyan" />
+        </div>
+        <div className="fab-text-wrap">
+          <span className="fab-title">AI Copilot</span>
+          <span className="fab-keychip mono">Ctrl+K</span>
+        </div>
+        <span className="fab-pulse-dot" />
       </button>
 
-      {/* Panel */}
-      <div className={`chat-panel ${open ? 'chat-panel-open' : ''}`}>
-        <div className="chat-panel-header">
-          <div className="chat-panel-title">
-            <Bot size={18} style={{ color: 'var(--accent-cyan)' }} />
-            <span>NetShield Assistant</span>
-            {botStatus.available && botStatus.model && (
-              <span className="model-badge">{botStatus.model.replace('models/', '')}</span>
-            )}
+      {/* 2. Glassmorphic Slide-Out Panel */}
+      <div className={`chat-glass-panel ${open ? 'chat-glass-panel-open' : ''}`}>
+        {/* Panel Header */}
+        <div className="chat-glass-header">
+          <div className="header-branding">
+            <div className="bot-avatar-frame">
+              <Bot size={18} className="text-cyan" />
+              <span className="avatar-online-dot" />
+            </div>
+            <div className="header-titles">
+              <div className="title-row">
+                <span className="copilot-name">NetShield Assistant</span>
+                <span className="copilot-badge mono">SOC COPILOT</span>
+              </div>
+              <div className="status-row text-muted text-xs mono">
+                <span>{botStatus.model ? botStatus.model.replace('models/', '') : 'Gemini Engine'}</span>
+                <span className="meta-sep">•</span>
+                <span className="text-safe">Online</span>
+              </div>
+            </div>
           </div>
-          <button className="chat-close" onClick={handleClose}>
-            <X size={18} />
-          </button>
+
+          <div className="header-actions">
+            <button
+              className="chat-icon-btn"
+              onClick={handleClearSession}
+              title="Clear conversation"
+            >
+              <RotateCcw size={14} />
+            </button>
+            <button
+              className="chat-icon-btn chat-close-btn"
+              onClick={handleClose}
+              title="Close panel (Esc)"
+            >
+              <X size={16} />
+            </button>
+          </div>
         </div>
 
-        <div className="chat-messages" ref={scrollRef}>
-          {messages.map((msg, i) => (
-            <div key={i} className={`msg-row ${msg.role === 'user' ? 'msg-row-user' : 'msg-row-bot'}`}>
-              <div className={`msg-bubble ${msg.role === 'user' ? 'msg-bubble-user' : 'msg-bubble-bot'}`}>
-                {msg.role === 'bot' && <Bot size={14} className="msg-icon" />}
-                {msg.role === 'user' && <User size={14} className="msg-icon" />}
-                {msg.role === 'bot' ? (
-                  <BotMessage content={msg.text} />
-                ) : (
-                  <span className="msg-text">{msg.text}</span>
-                )}
-              </div>
-              <span className="msg-time text-faint mono">{formatMsgTime(msg.time)}</span>
-            </div>
-          ))}
+        {/* Messages Stream */}
+        <div className="chat-messages-container" ref={scrollRef}>
+          {messages.map((msg, i) => {
+            const isBot = msg.role === 'bot'
+            return (
+              <div key={i} className={`message-group ${isBot ? 'group-bot' : 'group-user'}`}>
+                <div className="message-sender-avatar">
+                  {isBot ? <Bot size={13} className="text-cyan" /> : <User size={13} className="text-primary" />}
+                </div>
 
+                <div className="message-content-wrap">
+                  <div className={`message-bubble ${isBot ? 'bubble-bot-glass' : 'bubble-user-glass'}`}>
+                    {isBot ? <BotMessage content={msg.text} /> : <span className="user-plain-text">{msg.text}</span>}
+                  </div>
+                  <span className="message-timestamp mono text-muted text-xs">
+                    {formatMsgTime(msg.time)}
+                  </span>
+                </div>
+              </div>
+            )
+          })}
+
+          {/* Typing Indicator */}
           {typing && (
-            <div className="msg-row msg-row-bot">
-              <div className="msg-bubble msg-bubble-bot">
-                <span className="typing-dot" style={{ animationDelay: '0s' }} />
-                <span className="typing-dot" style={{ animationDelay: '0.2s' }} />
-                <span className="typing-dot" style={{ animationDelay: '0.4s' }} />
+            <div className="message-group group-bot">
+              <div className="message-sender-avatar">
+                <Bot size={13} className="text-cyan" />
+              </div>
+              <div className="message-content-wrap">
+                <div className="bubble-bot-glass typing-bubble">
+                  <span className="thinking-text mono text-xs text-cyan">Analyzing telemetry</span>
+                  <div className="wave-container">
+                    <span className="wave-dot" style={{ animationDelay: '0s' }} />
+                    <span className="wave-dot" style={{ animationDelay: '0.2s' }} />
+                    <span className="wave-dot" style={{ animationDelay: '0.4s' }} />
+                  </div>
+                </div>
               </div>
             </div>
           )}
         </div>
 
-        <div className="chat-quick-actions">
-          {QUICK_ACTIONS.map((q) => (
-            <button key={q} className="quick-btn" onClick={() => send(q)} disabled={typing}>
-              {q}
-            </button>
-          ))}
+        {/* Quick Suggestion Chips */}
+        <div className="chat-quick-section">
+          <div className="quick-header mono text-muted">
+            <Zap size={11} className="text-amber" />
+            <span>INVESTIGATE QUICKLY</span>
+          </div>
+          <div className="quick-chips-grid">
+            {QUICK_ACTIONS.map((item, idx) => (
+              <button
+                key={idx}
+                className="quick-chip-glass mono"
+                onClick={() => send(item.query)}
+                disabled={typing}
+              >
+                <ChevronRight size={11} className="text-muted" />
+                <span>{item.label}</span>
+              </button>
+            ))}
+          </div>
         </div>
 
-        <div className="chat-input-row">
-          <input
-            ref={inputRef}
-            type="text"
-            className="chat-input"
-            placeholder="Ask about threats, attacks, or security…"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            disabled={typing}
-          />
-          <button className="chat-send" onClick={() => send()} disabled={typing || !input.trim()}>
-            <Send size={16} />
-          </button>
+        {/* Input Bar */}
+        <div className="chat-input-container">
+          <div className="input-glass-wrapper">
+            <input
+              ref={inputRef}
+              type="text"
+              className="chat-glass-input"
+              placeholder="Ask about active vectors, MITRE TTPs, or attacker IPs…"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              disabled={typing}
+            />
+            <button
+              className="chat-glass-send-btn"
+              onClick={() => send()}
+              disabled={typing || !input.trim()}
+              title="Send message (Enter)"
+            >
+              <Send size={15} />
+            </button>
+          </div>
+          <div className="input-shortcut-hint mono text-muted text-xs">
+            <span>Press <strong>Enter</strong> to send • <strong>Shift+Enter</strong> for newline</span>
+          </div>
         </div>
       </div>
 
       {/* Backdrop */}
-      {open && <div className="chat-backdrop" onClick={handleClose} />}
+      {open && <div className="chat-glass-backdrop" onClick={handleClose} />}
 
+      {/* Instrument-Grade Styling */}
       <style>{`
-        /* ── FAB button ── */
-        .chat-fab {
+        /* ── 1. Floating Glass FAB ── */
+        .chat-glass-fab {
           position: fixed;
           bottom: 24px;
           right: 24px;
-          width: 56px;
-          height: 56px;
-          border-radius: 50%;
-          background: var(--accent-cyan);
-          color: var(--bg-primary);
-          border: none;
+          height: 44px;
+          padding: 0 16px 0 10px;
+          border-radius: var(--radius-md);
+          background: rgba(19, 23, 34, 0.85);
+          backdrop-filter: blur(14px);
+          -webkit-backdrop-filter: blur(14px);
+          color: var(--text-primary);
+          border: 1px solid rgba(255, 255, 255, 0.12);
           cursor: pointer;
+          display: inline-flex;
+          align-items: center;
+          gap: 10px;
+          z-index: 200;
+          box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45), 0 0 12px rgba(56, 189, 248, 0.15);
+          transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .chat-glass-fab:hover {
+          background: rgba(28, 34, 51, 0.95);
+          border-color: rgba(56, 189, 248, 0.4);
+          transform: translateY(-2px);
+          box-shadow: 0 12px 35px rgba(0, 0, 0, 0.5), 0 0 18px rgba(56, 189, 248, 0.25);
+        }
+
+        .chat-glass-fab-hidden {
+          opacity: 0;
+          pointer-events: none;
+          transform: translateY(8px);
+        }
+
+        .fab-icon-box {
+          width: 28px;
+          height: 28px;
+          border-radius: var(--radius-sm);
+          background: rgba(56, 189, 248, 0.12);
+          border: 1px solid rgba(56, 189, 248, 0.25);
           display: flex;
           align-items: center;
           justify-content: center;
-          z-index: 200;
-          box-shadow: 0 4px 20px rgba(0,240,255,0.3);
-          transition: transform 0.3s, opacity 0.3s;
-        }
-        .chat-fab:hover {
-          transform: scale(1.05);
-        }
-        .chat-fab-hidden {
-          opacity: 0;
-          pointer-events: none;
-          transform: scale(0.8);
-        }
-        .chat-fab-pulse {
-          position: absolute;
-          inset: -4px;
-          border-radius: 50%;
-          border: 2px solid var(--accent-cyan);
-          opacity: 0;
-          animation: fab-pulse 2.5s infinite;
-        }
-        .chat-fab-hint {
-          position: absolute;
-          right: -2px;
-          bottom: -4px;
-          background: var(--bg-primary);
-          border: 1px solid var(--border-default);
-          border-radius: 4px;
-          padding: 1px 4px;
-          font-size: 0.55rem;
-          font-weight: 700;
-          color: var(--text-secondary);
-          letter-spacing: 0.5px;
-        }
-        @keyframes fab-pulse {
-          0% { opacity: 0.6; transform: scale(1); }
-          100% { opacity: 0; transform: scale(1.4); }
         }
 
-        /* ── Backdrop ── */
-        .chat-backdrop {
+        .fab-text-wrap {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .fab-title {
+          font-size: 0.82rem;
+          font-weight: 600;
+          color: var(--text-primary);
+        }
+
+        .fab-keychip {
+          background: rgba(255, 255, 255, 0.05);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: var(--radius-xs);
+          padding: 1px 6px;
+          font-size: 0.65rem;
+          color: var(--text-secondary);
+        }
+
+        .fab-pulse-dot {
+          width: 7px;
+          height: 7px;
+          border-radius: 50%;
+          background: var(--status-safe);
+          box-shadow: 0 0 8px var(--status-safe);
+          animation: pulse-ring 2s infinite;
+        }
+
+        @keyframes pulse-ring {
+          0%, 100% { transform: scale(1); opacity: 1; }
+          50% { transform: scale(1.3); opacity: 0.7; }
+        }
+
+        /* ── 2. Glass Backdrop ── */
+        .chat-glass-backdrop {
           position: fixed;
           inset: 0;
-          background: rgba(0, 0, 0, 0.65);
-          backdrop-filter: blur(4px);
+          background: rgba(8, 10, 15, 0.65);
+          backdrop-filter: blur(5px);
+          -webkit-backdrop-filter: blur(5px);
           z-index: 290;
+          animation: fadeIn 0.2s ease-out;
         }
 
-        /* ── Panel ── */
-        .chat-panel {
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+
+        /* ── 3. Slide-Out Panel ── */
+        .chat-glass-panel {
           position: fixed;
           top: 0;
           right: 0;
-          width: 420px;
+          width: 460px;
           max-width: 100vw;
           height: 100vh;
-          background: #090e1a;
-          border-left: 1px solid rgba(56, 189, 248, 0.25);
-          box-shadow: -10px 0 30px rgba(0, 0, 0, 0.8);
+          background: rgba(14, 17, 26, 0.88);
+          backdrop-filter: blur(20px);
+          -webkit-backdrop-filter: blur(20px);
+          border-left: 1px solid rgba(255, 255, 255, 0.1);
+          box-shadow: -10px 0 40px rgba(0, 0, 0, 0.6);
           display: flex;
           flex-direction: column;
           z-index: 300;
           transform: translateX(100%);
-          transition: transform 0.3s ease;
-        }
-        .chat-panel-open {
-          transform: translateX(0);
-          animation: slide-in-right 0.3s ease;
+          transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
-        /* ── Header ── */
-        .chat-panel-header {
+        .chat-glass-panel-open {
+          transform: translateX(0);
+        }
+
+        /* ── Panel Header ── */
+        .chat-glass-header {
           display: flex;
           align-items: center;
           justify-content: space-between;
           padding: 16px 20px;
-          border-bottom: 1px solid rgba(56, 189, 248, 0.2);
+          border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+          background: rgba(19, 23, 34, 0.6);
           flex-shrink: 0;
-          background: #0f172a;
         }
-        .chat-panel-title {
+
+        .header-branding {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+
+        .bot-avatar-frame {
+          position: relative;
+          width: 36px;
+          height: 36px;
+          border-radius: var(--radius-sm);
+          background: rgba(56, 189, 248, 0.12);
+          border: 1px solid rgba(56, 189, 248, 0.25);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .avatar-online-dot {
+          position: absolute;
+          bottom: -2px;
+          right: -2px;
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          background: var(--status-safe);
+          border: 2px solid var(--bg-card);
+        }
+
+        .header-titles {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+        }
+
+        .title-row {
           display: flex;
           align-items: center;
           gap: 8px;
-          font-family: var(--font-heading);
-          font-weight: 700;
-          font-size: 1rem;
-          color: #f8fafc;
-        }
-        .model-badge {
-          font-size: 0.62rem;
-          font-weight: 600;
-          padding: 2px 8px;
-          border-radius: 10px;
-          background: rgba(0, 240, 255, 0.15);
-          border: 1px solid rgba(0, 240, 255, 0.3);
-          color: var(--accent-cyan);
-          letter-spacing: 0.3px;
-        }
-        .chat-close {
-          background: rgba(255, 255, 255, 0.05);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          color: var(--text-secondary);
-          cursor: pointer;
-          padding: 6px;
-          border-radius: 8px;
-          display: flex;
-          transition: all 0.2s;
-        }
-        .chat-close:hover {
-          background: rgba(255, 42, 95, 0.2);
-          color: #ff2a5f;
-          border-color: rgba(255, 42, 95, 0.4);
         }
 
-        /* ── Messages area ── */
-        .chat-messages {
+        .copilot-name {
+          font-size: 0.92rem;
+          font-weight: 600;
+          color: var(--text-primary);
+        }
+
+        .copilot-badge {
+          font-size: 0.62rem;
+          font-weight: 700;
+          padding: 1px 6px;
+          background: rgba(56, 189, 248, 0.1);
+          border: 1px solid rgba(56, 189, 248, 0.25);
+          color: var(--accent-cyan);
+          border-radius: var(--radius-xs);
+          letter-spacing: 0.5px;
+        }
+
+        .status-row {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+
+        .meta-sep {
+          opacity: 0.4;
+        }
+
+        .header-actions {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+
+        .chat-icon-btn {
+          background: rgba(255, 255, 255, 0.04);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          color: var(--text-secondary);
+          cursor: pointer;
+          width: 30px;
+          height: 30px;
+          border-radius: var(--radius-sm);
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.12s ease;
+        }
+
+        .chat-icon-btn:hover {
+          color: var(--text-primary);
+          background: rgba(255, 255, 255, 0.08);
+          border-color: rgba(255, 255, 255, 0.15);
+        }
+
+        .chat-close-btn:hover {
+          border-color: rgba(248, 113, 113, 0.3);
+          color: var(--status-critical);
+        }
+
+        /* ── Messages Stream ── */
+        .chat-messages-container {
           flex: 1;
           overflow-y: auto;
-          padding: 18px;
+          padding: 20px;
           display: flex;
           flex-direction: column;
-          gap: 14px;
-          background: #090e1a;
+          gap: 16px;
         }
-        .msg-row {
+
+        .message-group {
+          display: flex;
+          gap: 10px;
+          max-width: 90%;
+        }
+
+        .group-bot {
+          align-self: flex-start;
+        }
+
+        .group-user {
+          align-self: flex-end;
+          flex-direction: row-reverse;
+        }
+
+        .message-sender-avatar {
+          width: 26px;
+          height: 26px;
+          border-radius: var(--radius-xs);
+          background: rgba(255, 255, 255, 0.05);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+          margin-top: 2px;
+        }
+
+        .message-content-wrap {
           display: flex;
           flex-direction: column;
           gap: 4px;
-          max-width: 90%;
-        }
-        .msg-row-bot { align-self: flex-start; }
-        .msg-row-user { align-self: flex-end; }
-        .msg-bubble {
-          display: flex;
-          align-items: flex-start;
-          gap: 8px;
-          padding: 12px 16px;
-          border-radius: 14px;
-          font-size: 0.88rem;
-          line-height: 1.55;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-        }
-        .msg-bubble-bot {
-          background: #142036;
-          border: 1px solid rgba(56, 189, 248, 0.25);
-          color: #f8fafc;
-          border-bottom-left-radius: 4px;
-        }
-        .msg-bubble-user {
-          background: linear-gradient(135deg, rgba(0, 240, 255, 0.25), rgba(56, 189, 248, 0.15));
-          color: #ffffff;
-          border: 1px solid rgba(0, 240, 255, 0.4);
-          border-bottom-right-radius: 4px;
-        }
-        .msg-icon {
-          flex-shrink: 0;
-          margin-top: 3px;
-          color: var(--accent-cyan);
-        }
-        .msg-time {
-          font-size: 0.65rem;
-          padding: 0 4px;
-          color: #64748b;
-        }
-        .typing-dot {
-          width: 7px;
-          height: 7px;
-          border-radius: 50%;
-          background: var(--text-secondary);
-          display: inline-block;
-          animation: typing-dot 1.4s infinite;
         }
 
-        /* ── Markdown styles for bot messages ── */
+        .group-user .message-content-wrap {
+          align-items: flex-end;
+        }
+
+        .message-bubble {
+          padding: 12px 16px;
+          border-radius: var(--radius-md);
+          font-size: 0.82rem;
+          line-height: 1.55;
+          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25);
+        }
+
+        .bubble-bot-glass {
+          background: rgba(28, 34, 51, 0.65);
+          backdrop-filter: blur(10px);
+          -webkit-backdrop-filter: blur(10px);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          color: var(--text-primary);
+          border-top-left-radius: var(--radius-xs);
+        }
+
+        .bubble-user-glass {
+          background: rgba(56, 189, 248, 0.12);
+          border: 1px solid rgba(56, 189, 248, 0.3);
+          color: var(--text-primary);
+          border-top-right-radius: var(--radius-xs);
+        }
+
+        .user-plain-text {
+          font-weight: 400;
+        }
+
+        .message-timestamp {
+          font-size: 0.64rem;
+          padding: 0 4px;
+        }
+
+        /* ── Typing Animation ── */
+        .typing-bubble {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 10px 14px;
+        }
+
+        .wave-container {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+        }
+
+        .wave-dot {
+          width: 5px;
+          height: 5px;
+          border-radius: 50%;
+          background: var(--accent-cyan);
+          box-shadow: 0 0 6px var(--accent-cyan);
+          animation: wave-pulse 1.3s infinite ease-in-out;
+        }
+
+        @keyframes wave-pulse {
+          0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+          40% { transform: scale(1.15); opacity: 1; }
+        }
+
+        /* ── Markdown Bot Formatting ── */
         .bot-md {
           overflow-wrap: break-word;
           word-break: break-word;
         }
 
-        /* Bold — accent cyan + heavier weight */
         .md-bold {
           color: var(--accent-cyan);
-          font-weight: 700;
+          font-weight: 600;
         }
 
-        /* Headers */
         .md-h {
-          color: var(--accent-cyan);
-          font-weight: 700;
+          color: var(--text-primary);
+          font-weight: 600;
           margin: 10px 0 6px 0;
           line-height: 1.3;
         }
-        .bot-md h1 { font-size: 1.05rem; }
-        .bot-md h2 { font-size: 0.95rem; }
-        .bot-md h3 { font-size: 0.88rem; }
-        .bot-md h1:first-child,
-        .bot-md h2:first-child,
-        .bot-md h3:first-child {
-          margin-top: 0;
-        }
 
-        /* Paragraphs */
+        .md-h1 { font-size: 0.95rem; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 4px; }
+        .md-h2 { font-size: 0.88rem; }
+        .md-h3 { font-size: 0.82rem; }
+
         .md-p {
           margin: 6px 0;
           line-height: 1.55;
         }
-        .md-p:first-child {
-          margin-top: 0;
-        }
-        .md-p:last-child {
-          margin-bottom: 0;
-        }
+        .md-p:first-child { margin-top: 0; }
+        .md-p:last-child { margin-bottom: 0; }
 
-        /* Unordered lists */
         .md-ul {
           margin: 6px 0;
           padding-left: 18px;
-          list-style: none;
-        }
-        .md-li {
-          margin: 4px 0;
-          padding-left: 4px;
-          line-height: 1.5;
-          position: relative;
-        }
-        .md-ul .md-li::before {
-          content: '▸';
-          position: absolute;
-          left: -14px;
-          color: var(--accent-cyan);
-          font-size: 0.7rem;
-          top: 3px;
+          list-style: disc;
         }
 
-        /* Ordered lists */
         .md-ol {
           margin: 6px 0;
-          padding-left: 20px;
-          counter-reset: md-ol-counter;
-          list-style: none;
-        }
-        .md-ol .md-li {
-          counter-increment: md-ol-counter;
-        }
-        .md-ol .md-li::before {
-          content: counter(md-ol-counter) '.';
-          position: absolute;
-          left: -18px;
-          color: var(--accent-cyan);
-          font-weight: 600;
-          font-size: 0.8rem;
-          top: 2px;
+          padding-left: 18px;
+          list-style: decimal;
         }
 
-        /* Inline code */
-        .md-code {
-          background: rgba(0,240,255,0.08);
-          border: 1px solid rgba(0,240,255,0.15);
-          border-radius: 4px;
+        .md-li {
+          margin: 3px 0;
+          line-height: 1.5;
+        }
+
+        .md-code-inline {
+          background: rgba(255, 255, 255, 0.08);
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          border-radius: var(--radius-xs);
           padding: 1px 5px;
-          font-size: 0.8rem;
-          font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+          font-size: 0.74rem;
           color: var(--accent-cyan);
         }
 
-        /* Block code */
-        .md-pre {
-          background: rgba(0,0,0,0.3);
-          border: 1px solid var(--border-default);
-          border-radius: 6px;
-          padding: 10px 12px;
+        .md-code-block-wrap {
           margin: 8px 0;
-          overflow-x: auto;
-          font-size: 0.78rem;
-          line-height: 1.4;
+          border-radius: var(--radius-sm);
+          overflow: hidden;
+          background: rgba(11, 13, 20, 0.9);
+          border: 1px solid rgba(255, 255, 255, 0.08);
         }
-        .md-pre code {
-          background: none;
+
+        .md-code-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 4px 10px;
+          background: rgba(255, 255, 255, 0.03);
+          border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .code-copy-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          background: transparent;
           border: none;
-          padding: 0;
-          font-size: inherit;
+          color: var(--text-muted);
+          font-size: 0.65rem;
+          cursor: pointer;
+          padding: 2px 4px;
+        }
+
+        .code-copy-btn:hover {
           color: var(--text-primary);
         }
 
-        /* Links */
+        .md-pre-custom {
+          padding: 10px 12px;
+          margin: 0;
+          overflow-x: auto;
+          font-size: 0.75rem;
+          line-height: 1.45;
+          color: var(--text-primary);
+        }
+
         .md-link {
           color: var(--accent-cyan);
           text-decoration: underline;
           text-underline-offset: 2px;
         }
-        .md-link:hover {
-          opacity: 0.85;
-        }
 
-        /* Horizontal rule */
         .md-hr {
           border: none;
-          border-top: 1px solid var(--border-default);
+          border-top: 1px solid rgba(255, 255, 255, 0.08);
           margin: 10px 0;
         }
 
-        /* ── Quick actions ── */
-        .chat-quick-actions {
+        /* ── Quick Chips ── */
+        .chat-quick-section {
+          padding: 12px 20px;
+          border-top: 1px solid rgba(255, 255, 255, 0.06);
+          background: rgba(14, 17, 26, 0.5);
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+
+        .quick-header {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 0.65rem;
+          font-weight: 600;
+          letter-spacing: 0.4px;
+        }
+
+        .quick-chips-grid {
           display: flex;
           flex-wrap: wrap;
           gap: 6px;
-          padding: 10px 16px;
-          border-top: 1px solid rgba(56, 189, 248, 0.2);
-          background: #0f172a;
         }
-        .quick-btn {
-          background: #1e293b;
-          border: 1px solid rgba(56, 189, 248, 0.25);
-          border-radius: 14px;
-          padding: 5px 12px;
-          color: #cbd5e1;
-          font-size: 0.75rem;
-          font-weight: 500;
+
+        .quick-chip-glass {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          background: rgba(255, 255, 255, 0.03);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          border-radius: var(--radius-xs);
+          padding: 4px 8px;
+          color: var(--text-secondary);
+          font-size: 0.7rem;
           cursor: pointer;
+          transition: all 0.14s ease;
           white-space: nowrap;
-          transition: all 0.2s;
         }
-        .quick-btn:hover {
-          background: #334155;
-          border-color: var(--accent-cyan);
-          color: var(--accent-cyan);
-          box-shadow: 0 2px 8px rgba(0, 240, 255, 0.15);
+
+        .quick-chip-glass:hover:not(:disabled) {
+          background: rgba(56, 189, 248, 0.1);
+          border-color: rgba(56, 189, 248, 0.3);
+          color: var(--text-primary);
+          transform: translateY(-1px);
         }
-        .quick-btn:disabled {
+
+        .quick-chip-glass:disabled {
           opacity: 0.4;
           cursor: not-allowed;
         }
 
-        /* ── Input row ── */
-        .chat-input-row {
+        /* ── Input Row ── */
+        .chat-input-container {
+          padding: 14px 20px 18px 20px;
+          border-top: 1px solid rgba(255, 255, 255, 0.08);
+          background: rgba(19, 23, 34, 0.7);
           display: flex;
-          gap: 8px;
-          padding: 12px 16px;
-          border-top: 1px solid rgba(56, 189, 248, 0.2);
-          background: #0f172a;
-          flex-shrink: 0;
+          flex-direction: column;
+          gap: 6px;
         }
-        .chat-input {
-          flex: 1;
-          background: #1e293b;
-          border: 1px solid rgba(56, 189, 248, 0.3);
-          border-radius: 8px;
-          padding: 10px 14px;
-          color: #f8fafc;
-          font-size: 0.88rem;
-          outline: none;
-          transition: border-color 0.2s, box-shadow 0.2s;
-        }
-        .chat-input::placeholder {
-          color: #64748b;
-        }
-        .chat-input:focus {
-          border-color: var(--accent-cyan);
-          box-shadow: 0 0 10px rgba(0, 240, 255, 0.25);
-        }
-        .chat-send {
-          background: var(--accent-cyan);
-          color: #060913;
-          font-weight: 700;
-          border: none;
-          border-radius: 8px;
-          padding: 0 14px;
-          cursor: pointer;
+
+        .input-glass-wrapper {
           display: flex;
           align-items: center;
+          background: rgba(11, 13, 20, 0.85);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: var(--radius-sm);
+          padding: 4px 6px 4px 12px;
+          transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        .input-glass-wrapper:focus-within {
+          border-color: var(--accent-cyan);
+          box-shadow: 0 0 12px rgba(56, 189, 248, 0.2);
+        }
+
+        .chat-glass-input {
+          flex: 1;
+          background: transparent;
+          border: none;
+          color: var(--text-primary);
+          font-size: 0.82rem;
+          outline: none;
+          padding: 6px 0;
+        }
+
+        .chat-glass-input::placeholder {
+          color: var(--text-tertiary);
+        }
+
+        .chat-glass-send-btn {
+          width: 32px;
+          height: 32px;
+          border-radius: var(--radius-xs);
+          background: var(--accent-cyan);
+          border: none;
+          color: #0b0d14;
+          cursor: pointer;
+          display: inline-flex;
+          align-items: center;
           justify-content: center;
-          transition: opacity 0.2s, transform 0.1s;
+          transition: all 0.14s ease;
+          flex-shrink: 0;
         }
-        .chat-send:hover:not(:disabled) {
-          transform: scale(1.03);
+
+        .chat-glass-send-btn:hover:not(:disabled) {
+          background: #7dd3fc;
+          transform: scale(1.04);
         }
-        .chat-send:disabled {
-          opacity: 0.4;
+
+        .chat-glass-send-btn:disabled {
+          opacity: 0.3;
           cursor: not-allowed;
+          background: rgba(255, 255, 255, 0.1);
+          color: var(--text-muted);
+        }
+
+        .input-shortcut-hint {
+          display: flex;
+          justify-content: center;
+          font-size: 0.62rem;
+          opacity: 0.7;
         }
 
         @media (max-width: 480px) {
-          .chat-panel { width: 100vw; }
+          .chat-glass-panel {
+            width: 100vw;
+          }
         }
       `}</style>
     </>

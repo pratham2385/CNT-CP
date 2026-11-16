@@ -1,15 +1,14 @@
 /**
- * NetShield AI — Alert banner component.
+ * NetShield AI — Security Incident Alert Banner.
  *
- * Full-width flashing red banner that slides down from the top when an
- * attack is detected. Auto-dismisses after 10 seconds. Queues multiple
- * alerts and shows one at a time.
+ * Fixed notification banner displayed when an attack flow is detected.
+ * Auto-dismisses after 10 seconds or on manual click.
  *
  * @module components/AlertBanner
  */
 
 import { useEffect, useState, useRef } from 'react'
-import { AlertOctagon, X } from 'lucide-react'
+import { ShieldAlert, X } from 'lucide-react'
 import { useDashboard } from '../context/DashboardContext.jsx'
 import { formatConfidence, formatEndpoint } from '../utils/format.js'
 import { ALERT_DISMISS_MS } from '../utils/constants.js'
@@ -27,7 +26,6 @@ export default function AlertBanner() {
     const id = lastAttack.timestamp_utc + '_' + (lastAttack.context?.flow_id || '')
     if (seenRef.current.has(id)) return
     seenRef.current.add(id)
-    // Keep the set from growing forever
     if (seenRef.current.size > 200) {
       const arr = Array.from(seenRef.current)
       seenRef.current = new Set(arr.slice(-100))
@@ -62,60 +60,120 @@ export default function AlertBanner() {
   const dst = formatEndpoint(ctx.dst_ip, ctx.dst_port)
 
   return (
-    <div className="alert-banner" onClick={dismiss}>
-      <AlertOctagon size={22} className="alert-icon" />
-      <span className="alert-text">
-        <strong>{current.label}</strong> detected from{' '}
-        <span className="mono">{src}</span>
-        {' → '}
-        <span className="mono">{dst}</span>
-        {' — '}
-        Confidence: <strong>{formatConfidence(current.confidence)}</strong>
-      </span>
-      <X size={18} className="alert-close" />
-      <span className="alert-hint">Click to dismiss</span>
+    <div className="incident-alert-banner" role="alert" onClick={dismiss}>
+      <div className="alert-content">
+        <ShieldAlert size={16} className="alert-symbol" />
+        <span className="alert-type-badge mono">{current.label}</span>
+        <span className="alert-message">
+          Incident detected from <span className="mono alert-endpoint">{src}</span>
+          <span className="alert-arrow"> → </span>
+          <span className="mono alert-endpoint">{dst}</span>
+          <span className="alert-separator">·</span>
+          Confidence <span className="mono alert-conf">{formatConfidence(current.confidence)}</span>
+        </span>
+      </div>
+
+      <div className="alert-actions">
+        <span className="alert-hint">Dismiss</span>
+        <button className="alert-close-btn" aria-label="Dismiss alert">
+          <X size={14} />
+        </button>
+      </div>
 
       <style>{`
-        .alert-banner {
+        .incident-alert-banner {
           position: fixed;
-          top: var(--header-height);
-          left: 0;
-          right: 0;
+          top: calc(var(--header-height) + 12px);
+          right: 24px;
           z-index: 500;
           display: flex;
           align-items: center;
-          gap: 12px;
-          padding: 12px 24px;
-          background: linear-gradient(90deg, rgba(239,68,68,0.95), rgba(220,38,38,0.95));
-          color: white;
+          justify-content: space-between;
+          gap: 16px;
+          padding: 10px 14px;
+          background: #191419;
+          border: 1px solid rgba(248, 113, 113, 0.35);
+          border-left: 3px solid var(--accent-crimson);
+          border-radius: var(--radius-sm);
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+          color: var(--text-primary);
           cursor: pointer;
-          animation: slide-down 0.3s ease, flash-red 2s infinite;
-          box-shadow: 0 4px 20px rgba(239,68,68,0.3);
+          max-width: 680px;
+          animation: slide-in 180ms cubic-bezier(0.2, 0, 0, 1);
         }
-        .alert-icon {
+
+        @keyframes slide-in {
+          from { opacity: 0; transform: translateY(-8px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .alert-content {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          font-size: 0.8rem;
+        }
+
+        .alert-symbol {
+          color: var(--accent-crimson);
           flex-shrink: 0;
-          animation: pulse-dot 1s infinite;
         }
-        .alert-text {
-          flex: 1;
-          font-size: 0.9rem;
+
+        .alert-type-badge {
+          font-size: 0.72rem;
+          font-weight: 700;
+          color: var(--accent-crimson);
+          background: rgba(248, 113, 113, 0.12);
+          border: 1px solid rgba(248, 113, 113, 0.25);
+          padding: 2px 6px;
+          border-radius: var(--radius-xs);
         }
-        .alert-close {
-          flex-shrink: 0;
-          opacity: 0.7;
-          transition: opacity 0.2s;
+
+        .alert-message {
+          color: var(--text-secondary);
         }
-        .alert-banner:hover .alert-close {
-          opacity: 1;
+
+        .alert-endpoint {
+          color: var(--text-primary);
         }
+
+        .alert-arrow {
+          color: var(--text-tertiary);
+          margin: 0 2px;
+        }
+
+        .alert-separator {
+          margin: 0 6px;
+          color: var(--text-tertiary);
+        }
+
+        .alert-conf {
+          color: var(--text-primary);
+          font-weight: 500;
+        }
+
+        .alert-actions {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
         .alert-hint {
           font-size: 0.7rem;
-          opacity: 0.6;
-          white-space: nowrap;
+          color: var(--text-tertiary);
         }
-        @media (max-width: 768px) {
-          .alert-hint { display: none; }
-          .alert-text { font-size: 0.8rem; }
+
+        .alert-close-btn {
+          background: transparent;
+          border: none;
+          color: var(--text-tertiary);
+          display: flex;
+          align-items: center;
+          cursor: pointer;
+        }
+
+        .alert-close-btn:hover {
+          color: var(--text-primary);
         }
       `}</style>
     </div>

@@ -144,7 +144,10 @@ class AppState:
 
     def __init__(self) -> None:
         self.settings: Settings = get_settings()
-        self.db: Database = Database(self.settings.db_path)
+        self.db: Database = Database(
+            self.settings.db_path,
+            database_url=self.settings.database_url,
+        )
         self.predictor: Optional[IntrusionPredictor] = None
         self.adapter: Optional[FlowPredictionAdapter] = None
         self.traffic_filter: Optional[TrafficFilter] = None
@@ -241,9 +244,11 @@ async def lifespan(app: FastAPI):
             state.attack_confidence_threshold * 100,
         )
 
-    # 2. Init alerts, chatbot, reports and reset DB session
-    state.db.clear_all_data()
-    logger.info("Database session reset — all counters starting from 0")
+    # 2. Init alerts, chatbot, reports and database session
+    logger.info(
+        "Database initialized — active engine: %s",
+        "PostgreSQL" if getattr(state.db, "is_postgres", False) else "SQLite",
+    )
     state.alerts = AlertDispatcher(state.settings)
     state.chatbot = Chatbot(state.settings.gemini_api_key, state.db)
     state.reports = ReportGenerator(state.db)
@@ -485,11 +490,22 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:3001",
+        "http://127.0.0.1:3001",
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    ],
+    allow_origin_regex=r"https?://(localhost|127\.0\.0\.1)(:\d+)?",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+from auth.router import router as auth_router
+app.include_router(auth_router)
 
 
 def _get_state(request) -> AppState:
@@ -616,6 +632,13 @@ async def get_stats() -> dict[str, Any]:
     return stats
 
 
+@app.get("/api/db/status")
+async def get_db_status() -> dict[str, Any]:
+    """Return diagnostic database storage and table statistics."""
+    state: AppState = app.state.app
+    return state.db.get_db_info()
+
+
 @app.post("/api/reset")
 async def reset_session_data() -> dict[str, Any]:
     """Reset all database records and clear packet/attack counts to 0.
@@ -735,8 +758,8 @@ async def simulate_attack_endpoint(req: SimulateRequest) -> dict[str, Any]:
         await state.ws.broadcast(result.to_dict())
 
         if is_attack:
-            if state.alerts is not None:
-                state.alerts.dispatch(result)
+            if state.alerts is not None and i == 0:
+                asyncio.create_task(asyncio.to_thread(state.alerts.dispatch, result))
             await state.ws.broadcast_attack_alert(result.to_dict())
 
         total_sent += 1

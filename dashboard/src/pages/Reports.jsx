@@ -49,40 +49,40 @@ export default function Reports() {
 
       <div className="reports-grid">
         {/* Summary card */}
-        <div className="glass-card report-summary-card">
+        <div className="card report-summary-card">
           <div className="report-card-header">
-            <FileText size={20} style={{ color: 'var(--accent-cyan)' }} />
-            <span className="report-card-title">Current System State</span>
+            <FileText size={16} className="text-muted" />
+            <span className="report-card-title">Current System Telemetry</span>
           </div>
           <div className="report-stats">
             <div className="report-stat-row">
-              <span className="text-muted">Total Packets Analysed</span>
+              <span className="text-muted">Total packets analyzed</span>
               <span className="mono">{totalPackets.toLocaleString()}</span>
             </div>
             <div className="report-stat-row">
-              <span className="text-muted">Attacks Detected</span>
-              <span className="mono text-crimson">{attackCount.toLocaleString()}</span>
+              <span className="text-muted">Attacks detected</span>
+              <span className="mono text-critical">{attackCount.toLocaleString()}</span>
             </div>
             <div className="report-stat-row">
-              <span className="text-muted">Threat Level</span>
+              <span className="text-muted">Threat level</span>
               <span className="mono">{threatLevel}</span>
             </div>
             <div className="report-stat-row">
-              <span className="text-muted">Attack Types</span>
+              <span className="text-muted">Attack types active</span>
               <span className="mono">{attackSummary.length}</span>
             </div>
           </div>
         </div>
 
         {/* Generate button card */}
-        <div className="glass-card report-action-card">
+        <div className="card report-action-card">
           <div className="report-card-header">
-            <FileCheck size={20} style={{ color: 'var(--accent-green)' }} />
+            <FileCheck size={16} className="text-muted" />
             <span className="report-card-title">Generate PDF Report</span>
           </div>
           <p className="report-desc text-muted">
             The report includes: executive summary, attack breakdown table,
-            top 10 attacker IPs, and security recommendations.
+            top attacker IPs, and security recommendations.
           </p>
           <button
             className="generate-btn"
@@ -91,12 +91,12 @@ export default function Reports() {
           >
             {loading ? (
               <>
-                <Loader2 size={18} className="spin" />
+                <Loader2 size={15} className="spin" />
                 Generating…
               </>
             ) : (
               <>
-                <Download size={18} />
+                <Download size={15} />
                 Generate Report
               </>
             )}
@@ -105,10 +105,10 @@ export default function Reports() {
           {result && (
             <div className="report-result">
               <div className="report-result-icon">
-                <FileCheck size={24} style={{ color: 'var(--accent-green)' }} />
+                <FileCheck size={18} style={{ color: 'var(--status-safe)' }} />
               </div>
               <div className="report-result-info">
-                <span className="report-result-title">Report Generated!</span>
+                <span className="report-result-title">Report Generated Successfully</span>
                 <span className="report-result-file mono text-muted">
                   {result.filename}
                 </span>
@@ -122,7 +122,7 @@ export default function Reports() {
           {error && (
             <div className="report-error">
               <span>{error}</span>
-              <button className="retry-btn" onClick={handleRetry}>Retry</button>
+              <button className="retry-btn mono" onClick={handleRetry}>Retry</button>
             </div>
           )}
         </div>
@@ -133,20 +133,20 @@ export default function Reports() {
           max-width: 1000px;
         }
         .page-header {
-          margin-bottom: 24px;
+          margin-bottom: 16px;
         }
         .page-title {
-          font-size: 1.5rem;
-          font-weight: 700;
+          font-size: 1.15rem;
+          font-weight: 600;
         }
         .page-subtitle {
-          font-size: 0.85rem;
-          margin-top: 4px;
+          font-size: 0.78rem;
+          margin-top: 3px;
         }
         .reports-grid {
           display: grid;
           grid-template-columns: 1fr 1fr;
-          gap: 20px;
+          gap: 16px;
         }
         @media (max-width: 767px) {
           .reports-grid {
@@ -154,54 +154,54 @@ export default function Reports() {
           }
         }
         .report-summary-card, .report-action-card {
-          padding: 24px;
+          padding: 16px 20px;
           display: flex;
           flex-direction: column;
-          gap: 16px;
+          gap: 14px;
         }
         .report-card-header {
           display: flex;
           align-items: center;
-          gap: 10px;
+          gap: 8px;
         }
         .report-card-title {
-          font-size: 0.95rem;
+          font-size: 0.88rem;
           font-weight: 600;
         }
         .report-stats {
           display: flex;
           flex-direction: column;
-          gap: 10px;
+          gap: 8px;
         }
         .report-stat-row {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          font-size: 0.85rem;
-          padding: 6px 0;
-          border-bottom: 1px solid rgba(30,41,59,0.5);
+          font-size: 0.78rem;
+          padding: 5px 0;
+          border-bottom: 1px solid var(--border-subtle);
         }
         .report-desc {
-          font-size: 0.82rem;
+          font-size: 0.78rem;
           line-height: 1.5;
         }
         .generate-btn {
-          display: flex;
+          display: inline-flex;
           align-items: center;
           gap: 8px;
           justify-content: center;
-          padding: 12px 24px;
-          background: var(--accent-cyan);
-          color: var(--bg-primary);
+          padding: 9px 18px;
+          background: var(--accent-blue);
+          color: #ffffff;
           border: none;
-          border-radius: 10px;
-          font-size: 0.9rem;
-          font-weight: 600;
+          border-radius: var(--radius-sm);
+          font-size: 0.82rem;
+          font-weight: 500;
           cursor: pointer;
-          transition: all 0.2s;
+          transition: opacity var(--transition-fast);
         }
         .generate-btn:hover:not(:disabled) {
-          box-shadow: 0 0 20px rgba(0,240,255,0.3);
+          opacity: 0.9;
         }
         .generate-btn:disabled {
           opacity: 0.5;
@@ -209,55 +209,57 @@ export default function Reports() {
         }
         .report-result {
           display: flex;
-          gap: 12px;
-          padding: 14px;
-          background: rgba(34,197,94,0.08);
-          border: 1px solid rgba(34,197,94,0.2);
-          border-radius: 8px;
-          animation: fade-in 0.3s;
+          gap: 10px;
+          padding: 10px 12px;
+          background: rgba(52, 211, 153, 0.08);
+          border: 1px solid rgba(52, 211, 153, 0.25);
+          border-radius: var(--radius-sm);
         }
         .report-result-info {
           display: flex;
           flex-direction: column;
-          gap: 4px;
+          gap: 3px;
           word-break: break-all;
         }
         .report-result-title {
           font-weight: 600;
-          color: var(--accent-green);
-          font-size: 0.9rem;
+          color: var(--status-safe);
+          font-size: 0.82rem;
         }
         .report-result-file {
-          font-size: 0.85rem;
+          font-size: 0.78rem;
         }
         .report-result-path {
-          font-size: 0.72rem;
+          font-size: 0.68rem;
         }
         .report-error {
-          padding: 12px;
-          background: rgba(239,68,68,0.08);
-          border: 1px solid rgba(239,68,68,0.2);
-          border-radius: 8px;
-          color: var(--accent-crimson);
-          font-size: 0.85rem;
+          padding: 10px 12px;
+          background: rgba(248, 113, 113, 0.08);
+          border: 1px solid rgba(248, 113, 113, 0.25);
+          border-radius: var(--radius-sm);
+          color: var(--status-critical);
+          font-size: 0.78rem;
           display: flex;
           align-items: center;
           justify-content: space-between;
-          gap: 12px;
+          gap: 10px;
         }
         .retry-btn {
-          background: rgba(0,240,255,0.1);
-          border: 1px solid rgba(0,240,255,0.3);
-          border-radius: 6px;
-          padding: 4px 12px;
-          color: var(--accent-cyan);
-          font-size: 0.8rem;
+          background: var(--bg-raised);
+          border: 1px solid var(--border-subtle);
+          border-radius: var(--radius-sm);
+          padding: 3px 10px;
+          color: var(--text-primary);
+          font-size: 0.72rem;
           cursor: pointer;
-          transition: all 0.2s;
+          transition: background-color var(--transition-fast);
           flex-shrink: 0;
         }
         .retry-btn:hover {
-          background: rgba(0,240,255,0.2);
+          background: var(--bg-card);
+        }
+        .text-critical {
+          color: var(--status-critical);
         }
         .spin {
           animation: spin 1s linear infinite;

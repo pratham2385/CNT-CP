@@ -4,31 +4,31 @@
  * @module utils/constants
  */
 
-/** Threat level to colour mapping. */
+/** Threat level to colour mapping (Instrument-grade calibrated palette). */
 export const THREAT_COLORS = {
-  SAFE: '#22c55e',
-  ELEVATED: '#f59e0b',
-  CRITICAL: '#ef4444',
+  SAFE: '#34d399',
+  ELEVATED: '#fbbf24',
+  CRITICAL: '#f87171',
 }
 
 /** Threat level to background colour mapping (with opacity). */
 export const THREAT_BG_COLORS = {
-  SAFE: 'rgba(34, 197, 94, 0.15)',
-  ELEVATED: 'rgba(245, 158, 11, 0.15)',
-  CRITICAL: 'rgba(239, 68, 68, 0.15)',
+  SAFE: 'rgba(52, 211, 153, 0.12)',
+  ELEVATED: 'rgba(251, 191, 36, 0.12)',
+  CRITICAL: 'rgba(248, 113, 113, 0.12)',
 }
 
-/** Attack type to colour mapping for pie chart and badges. */
+/** Attack type to colour mapping for telemetry charts and badges. */
 export const ATTACK_COLORS = {
-  DDoS: '#ef4444',
-  DoS: '#f97316',
-  PortScan: '#f59e0b',
-  BruteForce: '#eab308',
-  Bot: '#a855f7',
-  WebAttack: '#ec4899',
-  Infiltration: '#6366f1',
-  Heartbleed: '#14b8a6',
-  BENIGN: '#22c55e',
+  DDoS: '#f87171',
+  DoS: '#fb923c',
+  PortScan: '#fbbf24',
+  BruteForce: '#facc15',
+  Bot: '#c084fc',
+  WebAttack: '#f472b6',
+  Infiltration: '#818cf8',
+  Heartbleed: '#2dd4bf',
+  BENIGN: '#34d399',
 }
 
 /** Protocol number to name mapping. */

@@ -14,6 +14,7 @@ import { API_BASE_URL } from '../utils/constants.js'
 const client = axios.create({
   baseURL: API_BASE_URL,
   timeout: 30000,
+  withCredentials: true,
   headers: { 'Content-Type': 'application/json' },
 })
 
@@ -25,6 +26,38 @@ client.interceptors.request.use((config) => {
   }
   return config
 })
+
+// Response interceptor to handle token refresh automatically on 401
+client.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config
+    // Don't loop refresh requests if auth endpoint itself returned 401
+    if (
+      error.response?.status === 401 &&
+      !originalRequest._retry &&
+      originalRequest.url &&
+      !originalRequest.url.includes('/api/auth/login') &&
+      !originalRequest.url.includes('/api/auth/refresh') &&
+      !originalRequest.url.includes('/api/auth/register')
+    ) {
+      originalRequest._retry = true
+      try {
+        const { data } = await client.post('/api/auth/refresh')
+        if (data.token) {
+          localStorage.setItem('netshield_auth_token', data.token)
+          originalRequest.headers.Authorization = `Bearer ${data.token}`
+        }
+        return client(originalRequest)
+      } catch (refreshErr) {
+        localStorage.removeItem('netshield_auth_token')
+        window.dispatchEvent(new CustomEvent('netshield_session_expired'))
+        return Promise.reject(refreshErr)
+      }
+    }
+    return Promise.reject(error)
+  }
+)
 
 // ── Auth API Functions ──────────────────────────────────────────
 
@@ -40,9 +73,68 @@ export async function loginUser(identifier, password) {
   return data
 }
 
+/** Log out and revoke active tokens. */
+export async function logoutUser() {
+  try {
+    const { data } = await client.post('/api/auth/logout')
+    return data
+  } catch (err) {
+    console.warn('[client] Logout endpoint call completed with notice:', err.message)
+    return { status: 'ok' }
+  }
+}
+
+/** Refresh the active access token using the HttpOnly refresh token. */
+export async function refreshSession() {
+  const { data } = await client.post('/api/auth/refresh')
+  return data
+}
+
 /** Fetch current authenticated user profile. */
 export async function fetchCurrentUser() {
   const { data } = await client.get('/api/auth/me')
+  return data
+}
+
+/** Update profile info (username and/or email). */
+export async function updateUserProfile({ username, email }) {
+  const { data } = await client.patch('/api/auth/me', { username, email })
+  return data
+}
+
+/** Change account password with old and new passwords. */
+export async function changePassword(currentPassword, newPassword) {
+  const { data } = await client.post('/api/auth/change-password', {
+    current_password: currentPassword,
+    new_password: newPassword,
+  })
+  return data
+}
+
+/** Request password reset email / single-use token. */
+export async function forgotPassword(email) {
+  const { data } = await client.post('/api/auth/forgot-password', { email })
+  return data
+}
+
+/** Complete password reset using token and new password. */
+export async function resetPassword(token, newPassword) {
+  const { data } = await client.post('/api/auth/reset-password', {
+    token,
+    new_password: newPassword,
+  })
+  return data
+}
+
+/** Verify user email address with token. */
+export async function verifyEmail(token) {
+  const { data } = await client.post('/api/auth/verify-email', { token })
+  return data
+}
+
+/** Resend verification email / token. */
+export async function resendVerification(email) {
+  const { data } = await client.post('/api/auth/resend-verification', { email })
   return data
 }
 
@@ -159,3 +251,31 @@ export async function resetSessionData() {
   const { data } = await client.post('/api/reset', {})
   return data
 }
+
+/**
+ * Trigger an attack simulation through the backend pipeline.
+ *
+ * @param {string} [attackType='DDoS'] - e.g. 'DDoS', 'PortScan', 'BruteForce', 'DoS', 'Bot', 'WebAttack'
+ * @param {number} [count=20] - Number of flows to inject
+ * @param {number} [delayMs=10] - Delay between flows in milliseconds
+ * @returns {Promise<object>}
+ */
+export async function simulateAttack(attackType = 'DDoS', count = 20, delayMs = 10) {
+  const { data } = await client.post('/api/simulate', {
+    attack_type: attackType,
+    count,
+    delay_ms: delayMs,
+  })
+  return data
+}
+
+/**
+ * Fetch database engine diagnostics, table counts, and storage metrics.
+ *
+ * @returns {Promise<object>}
+ */
+export async function fetchDbStatus() {
+  const { data } = await client.get('/api/db/status')
+  return data
+}
+

@@ -47,12 +47,12 @@ function TrafficTooltip({ active, payload, timeMode }) {
       <div className="tooltip-time mono">
         <strong>{clockStr}</strong> <span className="text-muted">({relStr})</span>
       </div>
-      <div className="tooltip-row text-cyan">
-        <span className="tooltip-dot" style={{ background: 'var(--accent-cyan)' }} />
+      <div className="tooltip-row text-blue">
+        <span className="tooltip-dot" style={{ background: 'var(--accent-blue)' }} />
         Normal: <strong className="mono">{data.normal || 0}</strong> pkts/s
       </div>
-      <div className="tooltip-row text-crimson">
-        <span className="tooltip-dot" style={{ background: 'var(--accent-crimson)' }} />
+      <div className="tooltip-row text-critical">
+        <span className="tooltip-dot" style={{ background: 'var(--status-critical)' }} />
         Attack: <strong className="mono">{data.attack || 0}</strong> pkts/s
       </div>
     </div>
@@ -108,10 +108,10 @@ export default function LiveTrafficChart() {
   }, [])
 
   return (
-    <div className="glass-card chart-card">
+    <div className="card chart-card">
       <div className="chart-header">
         <div className="chart-title-wrap">
-          <Activity size={18} className="text-cyan" />
+          <Activity size={16} className="text-muted" />
           <span className="chart-title">Live Traffic Telemetry</span>
           <span className="live-pill">
             <span className="live-dot" /> LIVE
@@ -145,15 +145,15 @@ export default function LiveTrafficChart() {
         <AreaChart data={chartData} margin={{ top: 12, right: 12, left: -20, bottom: 0 }}>
           <defs>
             <linearGradient id="normalGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#00f0ff" stopOpacity={0.45} />
-              <stop offset="95%" stopColor="#00f0ff" stopOpacity={0.0} />
+              <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.25} />
+              <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.0} />
             </linearGradient>
             <linearGradient id="attackGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#ff2a5f" stopOpacity={0.7} />
-              <stop offset="95%" stopColor="#ff2a5f" stopOpacity={0.0} />
+              <stop offset="5%" stopColor="#f87171" stopOpacity={0.35} />
+              <stop offset="95%" stopColor="#f87171" stopOpacity={0.0} />
             </linearGradient>
           </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(56, 189, 248, 0.08)" />
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.04)" />
 
           {timeMode === 'relative' ? (
             <XAxis
@@ -179,8 +179,8 @@ export default function LiveTrafficChart() {
           <Area
             type="monotone"
             dataKey="normal"
-            stroke="#00f0ff"
-            strokeWidth={2}
+            stroke="#3b82f6"
+            strokeWidth={1.5}
             fill="url(#normalGrad)"
             name="Normal"
             isAnimationActive={false}
@@ -188,8 +188,8 @@ export default function LiveTrafficChart() {
           <Area
             type="monotone"
             dataKey="attack"
-            stroke="#ff2a5f"
-            strokeWidth={2}
+            stroke="#f87171"
+            strokeWidth={1.5}
             fill="url(#attackGrad)"
             name="Attack"
             isAnimationActive={false}
@@ -199,7 +199,7 @@ export default function LiveTrafficChart() {
 
       <style>{`
         .chart-card {
-          padding: 20px;
+          padding: 16px 20px;
           display: flex;
           flex-direction: column;
         }
@@ -217,35 +217,30 @@ export default function LiveTrafficChart() {
           gap: 8px;
         }
         .chart-title {
-          font-family: var(--font-heading);
-          font-size: 0.95rem;
-          font-weight: 700;
+          font-family: var(--font-body);
+          font-size: 0.88rem;
+          font-weight: 600;
           color: var(--text-primary);
         }
         .live-pill {
           display: inline-flex;
           align-items: center;
           gap: 5px;
-          background: rgba(34, 197, 94, 0.15);
-          color: #22c55e;
-          font-size: 0.68rem;
-          font-weight: 700;
+          background: rgba(52, 211, 153, 0.1);
+          color: var(--status-safe);
+          font-size: 0.65rem;
+          font-weight: 600;
+          font-family: var(--font-mono);
           padding: 2px 7px;
-          border-radius: 9999px;
-          border: 1px solid rgba(34, 197, 94, 0.3);
-          letter-spacing: 0.5px;
+          border-radius: var(--radius-sm);
+          border: 1px solid rgba(52, 211, 153, 0.25);
+          letter-spacing: 0.3px;
         }
         .live-dot {
-          width: 6px;
-          height: 6px;
+          width: 5px;
+          height: 5px;
           border-radius: 50%;
-          background: #22c55e;
-          box-shadow: 0 0 8px #22c55e;
-          animation: pulse-live 1.5s infinite;
-        }
-        @keyframes pulse-live {
-          0%, 100% { opacity: 1; transform: scale(1); }
-          50% { opacity: 0.4; transform: scale(0.85); }
+          background: var(--status-safe);
         }
         .chart-controls {
           display: flex;
@@ -254,10 +249,11 @@ export default function LiveTrafficChart() {
         }
         .chart-subtitle {
           font-size: 0.75rem;
+          font-family: var(--font-mono);
         }
         .timeline-toggle-group {
           display: flex;
-          background: rgba(15, 23, 42, 0.7);
+          background: var(--bg-dark);
           border: 1px solid var(--border-subtle);
           border-radius: var(--radius-sm);
           padding: 2px;
@@ -268,37 +264,36 @@ export default function LiveTrafficChart() {
           align-items: center;
           gap: 4px;
           background: transparent;
-          border: none;
+          border: 1px solid transparent;
           color: var(--text-secondary);
           font-size: 0.72rem;
-          font-weight: 600;
-          padding: 4px 8px;
-          border-radius: 4px;
+          font-weight: 500;
+          padding: 3px 8px;
+          border-radius: var(--radius-sm);
           cursor: pointer;
-          transition: all 0.2s ease;
+          transition: background-color var(--transition-fast), color var(--transition-fast);
         }
         .timeline-toggle-btn:hover {
           color: var(--text-primary);
         }
         .timeline-toggle-btn.active {
-          background: rgba(56, 189, 248, 0.15);
-          color: var(--accent-cyan);
-          border: 1px solid rgba(56, 189, 248, 0.3);
+          background: var(--bg-card);
+          color: var(--text-primary);
+          border-color: var(--border-subtle);
         }
         .chart-tooltip-glass {
-          background: rgba(10, 16, 32, 0.94);
-          backdrop-filter: blur(12px);
-          border: 1px solid var(--border-hover);
+          background: var(--bg-card);
+          border: 1px solid var(--border-default);
           border-radius: var(--radius-sm);
           padding: 8px 12px;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+          box-shadow: var(--shadow-md);
           font-size: 0.78rem;
         }
         .tooltip-time {
           color: var(--text-primary);
           margin-bottom: 5px;
-          font-size: 0.74rem;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+          font-size: 0.72rem;
+          border-bottom: 1px solid var(--border-subtle);
           padding-bottom: 4px;
         }
         .tooltip-row {
@@ -311,6 +306,12 @@ export default function LiveTrafficChart() {
           width: 6px;
           height: 6px;
           border-radius: 50%;
+        }
+        .text-blue {
+          color: var(--accent-blue);
+        }
+        .text-critical {
+          color: var(--status-critical);
         }
         @media (max-width: 640px) {
           .desktop-only {

@@ -1,198 +1,109 @@
 /**
  * Express Authentication Router — NetShield AI.
  *
- * Provides endpoints for user registration, login, user profile lookup,
- * JWT authentication, and agent API key generation.
+ * Secure gateway bridging to Python FastAPI Authentication Engine:
+ * - Argon2id hashing & 12+ char password complexity
+ * - Case-insensitive unique emails/usernames
+ * - Rate limiting and brute-force lockout
+ * - HttpOnly session cookies & JWT access tokens
+ * - Email verification & password reset single-use tokens
+ * - User profile management & API key rotation
  *
  * @module routes/auth
  */
 
 import express from 'express';
-import bcrypt from 'bcryptjs';
+import axios from 'axios';
 import jwt from 'jsonwebtoken';
-import crypto from 'crypto';
 
 const router = express.Router();
-
-const JWT_SECRET = process.env.JWT_SECRET || 'netshield_ai_secure_jwt_secret_key_2026';
-
-/**
- * Generate a random, cryptographically secure API key string.
- * Format: ns_live_<32_hex_chars>
- */
-function generateApiKey() {
-  return `ns_live_${crypto.randomBytes(16).toString('hex')}`;
-}
+const JWT_SECRET = process.env.JWT_SECRET || 'netshield_ai_secure_jwt_secret_key_2026_super_safe';
 
 /**
- * Middleware: Verify JWT Bearer Token in Authorization header.
+ * Middleware: Verify JWT Bearer Token in Authorization header or HttpOnly cookie.
  */
 export function authenticateToken(req, res, next) {
   const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
+  let token = authHeader && authHeader.split(' ')[1];
+
+  if (!token && req.headers.cookie) {
+    const match = req.headers.cookie.match(/netshield_access_token=([^;]+)/);
+    if (match) token = match[1];
+  }
 
   if (!token) {
-    return res.status(401).json({ error: 'Authentication required' });
+    return res.status(401).json({ error: 'Authentication required. Please sign in.' });
   }
 
   jwt.verify(token, JWT_SECRET, (err, payload) => {
     if (err) {
-      return res.status(403).json({ error: 'Invalid or expired session token' });
+      return res.status(401).json({ error: 'Invalid or expired session token.' });
     }
     req.user = payload;
     next();
   });
 }
 
-// ── POST /api/auth/register ─────────────────────────────────────
-router.post('/register', async (req, res) => {
+/**
+ * Proxy helper: forwards auth requests to FastAPI engine on port 8000.
+ */
+async function proxyToFastApi(req, res, endpoint) {
+  const targetUrl = `${req.pythonApiUrl || 'http://127.0.0.1:8000'}/api/auth${endpoint}`;
   try {
-    const { username, email, password } = req.body;
+    const headers = {
+      'Content-Type': 'application/json',
+      'X-Forwarded-For': req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1',
+      'User-Agent': req.headers['user-agent'] || 'NetShield-Gateway',
+    };
 
-    if (!username || !email || !password) {
-      return res.status(400).json({ error: 'Username, email, and password are required.' });
+    if (req.headers['authorization']) {
+      headers['Authorization'] = req.headers['authorization'];
+    }
+    if (req.headers['cookie']) {
+      headers['Cookie'] = req.headers['cookie'];
     }
 
-    if (password.length < 6) {
-      return res.status(400).json({ error: 'Password must be at least 6 characters long.' });
-    }
-
-    const db = req.app.get('db');
-
-    // Check if user already exists
-    const existingUser = db.findUserByUsernameOrEmail(email) || db.findUserByUsernameOrEmail(username);
-    if (existingUser) {
-      if (existingUser.email.toLowerCase() === email.toLowerCase()) {
-        return res.status(409).json({ error: 'An account with this email already exists.' });
-      }
-      return res.status(409).json({ error: 'Username is already taken.' });
-    }
-
-    // Hash password & generate API key
-    const salt = await bcrypt.genSalt(10);
-    const passwordHash = await bcrypt.hash(password, salt);
-    const apiKey = generateApiKey();
-
-    const newUser = db.createUser({
-      username,
-      email,
-      passwordHash,
-      apiKey,
+    const resp = await axios({
+      method: req.method,
+      url: targetUrl,
+      data: req.body,
+      headers,
+      timeout: 15000,
+      validateStatus: () => true, // Don't throw on 4xx/5xx, pass through
     });
 
-    // Create JWT token
-    const token = jwt.sign(
-      { id: newUser.id, username: newUser.username, email: newUser.email },
-      JWT_SECRET,
-      { expiresIn: '7d' }
-    );
+    // Forward Set-Cookie headers from FastAPI
+    const setCookie = resp.headers['set-cookie'];
+    if (setCookie) {
+      res.setHeader('Set-Cookie', setCookie);
+    }
 
-    res.status(201).json({
-      message: 'Account created successfully',
-      token,
-      user: {
-        id: newUser.id,
-        username: newUser.username,
-        email: newUser.email,
-        apiKey: newUser.api_key,
-        createdAt: newUser.created_at,
-      },
-    });
+    return res.status(resp.status).json(resp.data);
   } catch (err) {
-    console.error('[Auth] Registration error:', err);
-    res.status(500).json({ error: 'Failed to create user account.' });
-  }
-});
-
-// ── POST /api/auth/login ────────────────────────────────────────
-router.post('/login', async (req, res) => {
-  try {
-    const { identifier, password } = req.body; // identifier = email or username
-
-    if (!identifier || !password) {
-      return res.status(400).json({ error: 'Please enter your username/email and password.' });
+    if (err.code === 'ECONNREFUSED' || err.code === 'ECONNRESET') {
+      return res.status(503).json({ error: 'Authentication engine is currently starting or unavailable.' });
     }
-
-    const db = req.app.get('db');
-    const user = db.findUserByUsernameOrEmail(identifier);
-
-    if (!user) {
-      return res.status(401).json({ error: 'Invalid email/username or password.' });
-    }
-
-    const validPassword = await bcrypt.compare(password, user.password_hash);
-    if (!validPassword) {
-      return res.status(401).json({ error: 'Invalid email/username or password.' });
-    }
-
-    // Update last login
-    db.updateLastLogin(user.id);
-
-    const token = jwt.sign(
-      { id: user.id, username: user.username, email: user.email },
-      JWT_SECRET,
-      { expiresIn: '7d' }
-    );
-
-    res.json({
-      message: 'Login successful',
-      token,
-      user: {
-        id: user.id,
-        username: user.username,
-        email: user.email,
-        apiKey: user.api_key,
-        createdAt: user.created_at,
-        lastLogin: Date.now(),
-      },
-    });
-  } catch (err) {
-    console.error('[Auth] Login error:', err);
-    res.status(500).json({ error: 'Authentication failed.' });
+    console.error(`[Auth Gateway Error] ${endpoint}:`, err.message);
+    const status = err.response?.status || 500;
+    const message = err.response?.data?.detail || err.response?.data?.error || err.message;
+    return res.status(status).json({ error: message });
   }
-});
+}
 
-// ── GET /api/auth/me ────────────────────────────────────────────
-router.get('/me', authenticateToken, (req, res) => {
-  try {
-    const db = req.app.get('db');
-    const user = db.findUserById(req.user.id);
+// ── Auth Endpoints (Forwarded to Python FastAPI Engine) ───────────
 
-    if (!user) {
-      return res.status(404).json({ error: 'User account not found.' });
-    }
-
-    res.json({
-      user: {
-        id: user.id,
-        username: user.username,
-        email: user.email,
-        apiKey: user.api_key,
-        createdAt: user.created_at,
-        lastLogin: user.last_login,
-      },
-    });
-  } catch (err) {
-    console.error('[Auth] Fetch user profile error:', err);
-    res.status(500).json({ error: 'Failed to fetch user profile.' });
-  }
-});
-
-// ── POST /api/auth/regenerate-api-key ──────────────────────────
-router.post('/regenerate-api-key', authenticateToken, (req, res) => {
-  try {
-    const db = req.app.get('db');
-    const newApiKey = generateApiKey();
-    const updatedUser = db.updateApiKey(req.user.id, newApiKey);
-
-    res.json({
-      message: 'API Key regenerated successfully',
-      apiKey: updatedUser.api_key,
-    });
-  } catch (err) {
-    console.error('[Auth] Regenerate API key error:', err);
-    res.status(500).json({ error: 'Failed to regenerate API key.' });
-  }
-});
+router.post('/register', (req, res) => proxyToFastApi(req, res, '/register'));
+router.post('/login', (req, res) => proxyToFastApi(req, res, '/login'));
+router.post('/logout', (req, res) => proxyToFastApi(req, res, '/logout'));
+router.post('/refresh', (req, res) => proxyToFastApi(req, res, '/refresh'));
+router.get('/me', (req, res) => proxyToFastApi(req, res, '/me'));
+router.patch('/me', (req, res) => proxyToFastApi(req, res, '/me'));
+router.put('/profile', (req, res) => proxyToFastApi(req, res, '/profile'));
+router.post('/change-password', (req, res) => proxyToFastApi(req, res, '/change-password'));
+router.post('/forgot-password', (req, res) => proxyToFastApi(req, res, '/forgot-password'));
+router.post('/reset-password', (req, res) => proxyToFastApi(req, res, '/reset-password'));
+router.post('/verify-email', (req, res) => proxyToFastApi(req, res, '/verify-email'));
+router.post('/resend-verification', (req, res) => proxyToFastApi(req, res, '/resend-verification'));
+router.post('/regenerate-api-key', (req, res) => proxyToFastApi(req, res, '/regenerate-api-key'));
 
 export default router;

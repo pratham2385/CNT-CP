@@ -33,8 +33,8 @@ import urllib.error
 import urllib.request
 from typing import Any, Optional
 
-DEFAULT_PYTHON_URL = "http://localhost:8000"
-DEFAULT_NODE_URL = "http://localhost:3001"
+DEFAULT_PYTHON_URL = "http://127.0.0.1:8000"
+DEFAULT_NODE_URL = "http://127.0.0.1:3001"
 DEFAULT_COUNT = 50
 DEFAULT_DELAY_MS = 25.0
 

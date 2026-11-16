@@ -132,14 +132,14 @@ class EmailAlerter:
             logger.debug("Email alert on cooldown; skipping.")
             return False
 
+        self._last_sent = now
         msg = self._build_message(result)
 
         try:
-            with smtplib.SMTP(_SMTP_SERVER, _SMTP_PORT) as server:
+            with smtplib.SMTP(_SMTP_SERVER, _SMTP_PORT, timeout=5) as server:
                 server.starttls()
                 server.login(self._sender, self._password)
                 server.sendmail(self._sender, self._recipient, msg.as_string())
-            self._last_sent = now
             logger.info("Email alert sent for %s.", result.label)
             return True
         except Exception as exc:  # noqa: BLE001

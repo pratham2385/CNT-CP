@@ -21,45 +21,45 @@ export default function SystemInfo() {
   const uptimeStr = formatUptime(uptimeSeconds)
 
   return (
-    <div className="glass-card system-info-card">
+    <div className="card system-info-card">
       <div className="chart-header">
         <div className="chart-title-wrap">
-          <Terminal size={18} className="text-cyan" />
+          <Terminal size={15} className="text-muted" />
           <span className="chart-title">System Status & Environment</span>
         </div>
       </div>
       <div className="info-grid">
         <InfoRow
-          icon={<Wifi size={15} />}
-          label="Socket Connection"
-          value={socketConnected ? 'LIVE SOCKET' : 'DISCONNECTED'}
-          color={socketConnected ? 'var(--accent-green)' : 'var(--accent-crimson)'}
+          icon={<Wifi size={14} />}
+          label="Socket connection"
+          value={socketConnected ? 'Live socket' : 'Disconnected'}
+          color={socketConnected ? 'var(--status-safe)' : 'var(--status-critical)'}
         />
         <InfoRow
-          icon={<ShieldCheck size={15} />}
-          label="Capture Interface"
-          value={captureActive ? `ACTIVE (${captureInterface || 'Wi-Fi'})` : 'INACTIVE'}
-          color={captureActive ? 'var(--accent-green)' : 'var(--text-tertiary)'}
+          icon={<ShieldCheck size={14} />}
+          label="Capture interface"
+          value={captureActive ? `Active (${captureInterface || 'Wi-Fi'})` : 'Inactive'}
+          color={captureActive ? 'var(--status-safe)' : 'var(--text-muted)'}
         />
         <InfoRow
-          icon={<Cpu size={15} />}
-          label="ML Engine Model"
+          icon={<Cpu size={14} />}
+          label="ML engine model"
           value={modelVersion || 'xgboost_cicids2017_v3.pkl'}
-          color="var(--accent-cyan)"
+          color="var(--accent-blue)"
         />
         <InfoRow
-          icon={<Clock size={15} />}
-          label="Engine Uptime"
+          icon={<Clock size={14} />}
+          label="Engine uptime"
           value={uptimeStr}
         />
       </div>
 
       <style>{`
         .system-info-card {
-          padding: 20px;
+          padding: 16px 20px;
           display: flex;
           flex-direction: column;
-          gap: 14px;
+          gap: 12px;
         }
         .chart-title-wrap {
           display: flex;
@@ -67,15 +67,15 @@ export default function SystemInfo() {
           gap: 8px;
         }
         .chart-title {
-          font-family: var(--font-heading);
-          font-size: 0.95rem;
-          font-weight: 700;
+          font-family: var(--font-body);
+          font-size: 0.88rem;
+          font-weight: 600;
           color: var(--text-primary);
         }
         .info-grid {
           display: grid;
           grid-template-columns: repeat(4, 1fr);
-          gap: 16px;
+          gap: 12px;
         }
         @media (max-width: 900px) {
           .info-grid {
@@ -96,19 +96,19 @@ function InfoRow({ icon, label, value, color }) {
   return (
     <div className="info-item">
       <div className="info-top">
-        <span className="info-icon" style={{ color: color || 'var(--accent-cyan)' }}>{icon}</span>
+        <span className="info-icon" style={{ color: color || 'var(--text-muted)' }}>{icon}</span>
         <span className="info-label text-muted">{label}</span>
       </div>
       <span className="info-value mono" style={{ color: color || 'var(--text-primary)' }}>{value}</span>
       <style>{`
         .info-item {
-          background: rgba(15, 23, 42, 0.4);
-          border: 1px solid rgba(255, 255, 255, 0.06);
+          background: var(--bg-dark);
+          border: 1px solid var(--border-subtle);
           border-radius: var(--radius-sm);
-          padding: 10px 14px;
+          padding: 10px 12px;
           display: flex;
           flex-direction: column;
-          gap: 6px;
+          gap: 5px;
         }
         .info-top {
           display: flex;
@@ -121,13 +121,14 @@ function InfoRow({ icon, label, value, color }) {
         }
         .info-label {
           font-size: 0.72rem;
-          font-weight: 600;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
+          font-weight: 500;
         }
         .info-value {
-          font-size: 0.82rem;
-          font-weight: 600;
+          font-size: 0.78rem;
+          font-weight: 500;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
       `}</style>
     </div>

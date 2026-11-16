@@ -24,6 +24,10 @@ class VoiceAlerter:
         settings: Application settings (uses ``voice_alerts`` flag).
     """
 
+    _speak_lock = threading.Lock()
+    _is_speaking: bool = False
+    _last_alert_time: float = 0.0
+
     def __init__(self, settings: Settings) -> None:
         """Initialize the voice alerter.
 
@@ -74,10 +78,7 @@ class VoiceAlerter:
     def send_alert(self, result: PredictionResult) -> bool:
         """Announce an attack via text-to-speech in a background thread.
 
-        Does nothing when:
-        - Voice alerts are disabled in settings.
-        - The prediction is benign or rejected.
-        - pyttsx3 is not installed.
+        Throttled to avoid spawning dozens of simultaneous COM threads during bursts.
 
         Args:
             result: The PredictionResult to announce.
@@ -91,6 +92,13 @@ class VoiceAlerter:
         if not result.is_attack:
             return False
 
+        import time
+        now = time.time()
+        # Throttle voice alerts to at most one announcement every 5 seconds
+        if VoiceAlerter._is_speaking or (now - VoiceAlerter._last_alert_time < 5.0):
+            return False
+
+        VoiceAlerter._last_alert_time = now
         ctx = result.context
         src_ip = ctx.src_ip if ctx else "unknown"
         message = f"Warning! {result.label} detected from IP {src_ip}"
@@ -106,19 +114,38 @@ class VoiceAlerter:
     # Helpers
     # ------------------------------------------------------------------
 
-    @staticmethod
-    def _speak(message: str) -> None:
-        """Run the TTS engine in the calling thread.
+    @classmethod
+    def _speak(cls, message: str) -> None:
+        """Run the TTS engine in the calling thread with COM initialization and synchronization.
 
         Args:
             message: The text to speak.
         """
-        try:
-            import pyttsx3  # type: ignore[import-untyped]
+        with cls._speak_lock:
+            cls._is_speaking = True
+            co_init = False
+            try:
+                try:
+                    import pythoncom  # type: ignore[import-untyped]
+                    pythoncom.CoInitialize()
+                    co_init = True
+                except Exception:
+                    pass
 
-            engine = pyttsx3.init()
-            engine.say(message)
-            engine.runAndWait()
-            engine.stop()
-        except Exception as exc:  # noqa: BLE001
-            logger.error("Voice alert failed: %s", exc)
+                import pyttsx3  # type: ignore[import-untyped]
+
+                engine = pyttsx3.init()
+                engine.setProperty("rate", 160)
+                engine.say(message)
+                engine.runAndWait()
+                engine.stop()
+            except Exception as exc:  # noqa: BLE001
+                logger.error("Voice alert failed: %s", exc)
+            finally:
+                cls._is_speaking = False
+                if co_init:
+                    try:
+                        import pythoncom  # type: ignore[import-untyped]
+                        pythoncom.CoUninitialize()
+                    except Exception:
+                        pass

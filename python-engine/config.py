@@ -54,6 +54,8 @@ class Settings(BaseSettings):
 
     # ── Database ────────────────────────────────────────────────
     db_path: str = str(_PROJECT_ROOT / "python-engine" / "netshield.db")
+    database_url: str = ""  # e.g. postgresql://postgres:password@localhost:5432/netshield_db
+
 
     # ── Model artifacts (v3 defaults) ────────────────────────────
     model_path: str = ""
@@ -90,6 +92,12 @@ class Settings(BaseSettings):
 
     # ── Reports ─────────────────────────────────────────────────
     report_dir: str = str(_PROJECT_ROOT / "reports")
+
+    # ── Security & Authentication ───────────────────────────────
+    jwt_secret: str = "netshield_ai_secure_jwt_secret_key_2026_super_safe"
+    jwt_algorithm: str = "HS256"
+    access_token_expire_minutes: int = 60
+    refresh_token_expire_days: int = 7
 
     # ── Pydantic settings ───────────────────────────────────────
     model_config = SettingsConfigDict(
